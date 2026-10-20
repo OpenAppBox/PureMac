@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security problem
+    url: https://github.com/OpenAppBox/PureMac/security/advisories/new
+    about: Please report security problems privately, never in a public issue.
+  - name: 💬 Questions and support
+    url: https://www.openappbox.com/support
+    about: Help with using PureMac, subscriptions and billing. You can also email support@openappbox.com.
+  - name: 🌐 PureMac website
+    url: https://www.openappbox.com/puremac
+    about: Features, system requirements and frequently asked questions.

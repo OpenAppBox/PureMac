@@ -1,0 +1,24 @@
+name: 💡 Idea or feature request
+description: Suggest something that would make PureMac better.
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for the idea! The more we know about what you're trying to do, the better we can build it.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to get done?
+      placeholder: "I want to find out which projects are taking up the most space…"
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you handle it today?
+      description: Another app, a manual workaround, or not at all.
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How you imagine PureMac could help. Rough is fine.

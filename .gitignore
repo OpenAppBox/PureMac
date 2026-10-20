@@ -1,0 +1,57 @@
+# Xcode / SwiftPM build products
+build/
+DerivedData/
+.build/
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+Packages/PureMacKit/.build/
+Packages/PureMacKit/.swiftpm/
+
+# Release artifacts (produced by Scripts/)
+dist/
+*.dmg
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Local scan databases, reports and diagnostics — never commit user metadata
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.corrupt-*
+reports/
+*.puremac-report.txt
+
+# Signing / notarization secrets
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.p8
+notarization.env
+.env
+AuthKey_*.p8
+
+# macOS
+.DS_Store
+
+# Local development notes — kept private, never published
+ARCHITECTURE.md
+PLAN.md
+RELEASE.md
+RULES.md
+SAFETY.md
+TESTING.md
+LOCALIZATION_REVIEW.md
+blueprint.md
+CLAUDE.md
+.claude/
+
+# Python
+__pycache__/
+*.pyc

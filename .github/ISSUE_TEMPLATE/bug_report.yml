@@ -1,0 +1,82 @@
+name: 🐞 Bug report
+description: Something in PureMac doesn't work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! Found a **security** problem instead? Please report it privately — see SECURITY.md.
+        Before posting screenshots or logs, hide any file names or paths you'd rather not share.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Tell us what you did, what you expected, and what happened instead.
+      placeholder: "I opened Smart Clean, pressed Review & Clean, and…"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: If you can, list the steps that make it happen again.
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where in PureMac?
+      options:
+        - Overview / scanning
+        - Smart Clean
+        - Storage Explorer
+        - Applications / uninstall
+        - Orphaned Remnants
+        - Duplicates
+        - Developer Storage
+        - Performance
+        - History / Put Back
+        - Settings
+        - Translation
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: puremac-version
+    attributes:
+      label: PureMac version
+      description: PureMac → About PureMac.
+      placeholder: "0.13.0"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      description: Apple menu → About This Mac.
+      placeholder: "macOS 15.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: mac
+    attributes:
+      label: Mac
+      options:
+        - Apple silicon
+        - Intel
+        - Not sure
+  - type: dropdown
+    id: edition
+    attributes:
+      label: How did you get PureMac?
+      options:
+        - Mac App Store
+        - Direct download
+        - Built it myself
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Optional. Drag images here.

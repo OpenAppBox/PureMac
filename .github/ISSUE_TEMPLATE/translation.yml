@@ -1,0 +1,49 @@
+name: 🌍 Translation fix
+description: Something reads oddly, is wrong or is missing in your language.
+labels: ["translation"]
+body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - Arabic
+        - Chinese (Simplified)
+        - Chinese (Traditional)
+        - Danish
+        - Dutch
+        - English
+        - Finnish
+        - French
+        - German
+        - Italian
+        - Japanese
+        - Korean
+        - Norwegian
+        - Polish
+        - Portuguese (Brazil)
+        - Russian
+        - Swedish
+        - Turkish
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where does it appear?
+      placeholder: "Smart Clean, the button under the total"
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested text
+      description: And why, if it isn't obvious.
+    validations:
+      required: true

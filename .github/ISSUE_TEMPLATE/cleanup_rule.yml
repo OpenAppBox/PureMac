@@ -1,0 +1,41 @@
+name: 🧹 Suggest something Smart Clean should find
+description: A cache or download folder that an app or tool always rebuilds by itself.
+labels: ["smart-clean-rule"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Smart Clean only removes what an app or tool **rebuilds by itself**, so we need to be sure about every location.
+        A link to the developer's own documentation helps most.
+  - type: input
+    id: app
+    attributes:
+      label: App or tool
+      placeholder: "Example: SomeEditor 3"
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Folder
+      description: Replace your user name with ~ (for example ~/Library/Caches/com.example.app).
+      placeholder: "~/Library/Caches/…"
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: Where is it documented?
+      description: A link showing the folder is safe to remove (official docs, the tool's own clean command, or similar).
+  - type: textarea
+    id: after
+    attributes:
+      label: What happens after it's removed?
+      placeholder: "The app downloads thumbnails again; the first launch is a little slower."
+    validations:
+      required: true
+  - type: input
+    id: size
+    attributes:
+      label: Typical size
+      placeholder: "About 2 GB after a few months"

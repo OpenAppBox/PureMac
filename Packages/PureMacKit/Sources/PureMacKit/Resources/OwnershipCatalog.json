@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "2026.10.2",
+  "note": "Curated, documented vendor data locations relative to ~/Library. Add an entry only with a fixture test. Paths that hold irreplaceable data carry a 'warning' and are never preselected.",
+  "apps": [
+    {
+      "bundleID": "com.tinyspeck.slackmacgap",
+      "paths": [
+        {
+          "path": "Application Support/Slack",
+          "kind": "applicationSupport"
+        },
+        {
+          "path": "Logs/Slack",
+          "kind": "logs"
+        }
+      ],
+      "name": "Slack"
+    },
+    {
+      "bundleID": "com.microsoft.VSCode",
+      "paths": [
+        {
+          "path": "Application Support/Code",
+          "kind": "applicationSupport",
+          "warning": "Holds VS Code settings, extension state and unsaved editor backups."
+        }
+      ],
+      "name": "Visual Studio Code"
+    },
+    {
+      "bundleID": "com.google.Chrome",
+      "paths": [
+        {
+          "path": "Application Support/Google/Chrome",
+          "kind": "applicationSupport",
+          "warning": "Browser profiles: bookmarks, history, saved passwords and extensions."
+        },
+        {
+          "path": "Caches/Google/Chrome",
+          "kind": "cache"
+        }
+      ],
+      "name": "Google Chrome"
+    },
+    {
+      "bundleID": "org.mozilla.firefox",
+      "paths": [
+        {
+          "path": "Application Support/Firefox",
+          "kind": "applicationSupport",
+          "warning": "Firefox profiles: bookmarks, history, saved passwords and extensions."
+        },
+        {
+          "path": "Caches/Firefox",
+          "kind": "cache"
+        }
+      ],
+      "name": "Firefox"
+    },
+    {
+      "bundleID": "com.brave.Browser",
+      "paths": [
+        {
+          "path": "Application Support/BraveSoftware/Brave-Browser",
+          "kind": "applicationSupport",
+          "warning": "Browser profiles: bookmarks, history, saved passwords and extensions."
+        },
+        {
+          "path": "Caches/BraveSoftware/Brave-Browser",
+          "kind": "cache"
+        }
+      ],
+      "name": "Brave Browser"
+    },
+    {
+      "bundleID": "com.microsoft.edgemac",
+      "paths": [
+        {
+          "path": "Application Support/Microsoft Edge",
+          "kind": "applicationSupport",
+          "warning": "Browser profiles: bookmarks, history, saved passwords and extensions."
+        },
+        {
+          "path": "Caches/Microsoft Edge",
+          "kind": "cache"
+        }
+      ],
+      "name": "Microsoft Edge"
+    },
+    {
+      "bundleID": "com.hnc.Discord",
+      "paths": [
+        {
+          "path": "Application Support/discord",
+          "kind": "applicationSupport"
+        }
+      ],
+      "name": "Discord"
+    },
+    {
+      "bundleID": "com.spotify.client",
+      "paths": [
+        {
+          "path": "Application Support/Spotify",
+          "kind": "applicationSupport",
+          "warning": "May contain downloaded music for offline listening."
+        }
+      ],
+      "name": "Spotify"
+    },
+    {
+      "bundleID": "us.zoom.xos",
+      "paths": [
+        {
+          "path": "Application Support/zoom.us",
+          "kind": "applicationSupport"
+        },
+        {
+          "path": "Logs/zoom.us",
+          "kind": "logs"
+        }
+      ],
+      "name": "zoom.us"
+    },
+    {
+      "bundleID": "com.postmanlabs.mac",
+      "paths": [
+        {
+          "path": "Application Support/Postman",
+          "kind": "applicationSupport",
+          "warning": "May contain local collections and environments not synced to an account."
+        }
+      ],
+      "name": "Postman"
+    },
+    {
+      "bundleID": "com.figma.Desktop",
+      "paths": [
+        {
+          "path": "Application Support/Figma",
+          "kind": "applicationSupport"
+        }
+      ],
+      "name": "Figma"
+    },
+    {
+      "bundleID": "notion.id",
+      "paths": [
+        {
+          "path": "Application Support/Notion",
+          "kind": "applicationSupport"
+        }
+      ],
+      "name": "Notion"
+    },
+    {
+      "bundleID": "com.valvesoftware.steam",
+      "name": "Steam",
+      "paths": [
+        {
+          "path": "Application Support/Steam",
+          "kind": "applicationSupport",
+          "warning": "Holds installed games and their saved data."
+        }
+      ]
+    },
+    {
+      "bundleID": "md.obsidian",
+      "name": "Obsidian",
+      "paths": [
+        {
+          "path": "Application Support/obsidian",
+          "kind": "applicationSupport"
+        }
+      ]
+    },
+    {
+      "bundleID": "org.whispersystems.signal-desktop",
+      "name": "Signal",
+      "paths": [
+        {
+          "path": "Application Support/Signal",
+          "kind": "applicationSupport",
+          "warning": "Holds the message history stored on this Mac."
+        }
+      ]
+    },
+    {
+      "bundleID": "com.tdesktop.Telegram",
+      "name": "Telegram Desktop",
+      "paths": [
+        {
+          "path": "Application Support/Telegram Desktop",
+          "kind": "applicationSupport",
+          "warning": "Holds the message history stored on this Mac."
+        }
+      ]
+    },
+    {
+      "bundleID": "com.anthropic.claudefordesktop",
+      "name": "Claude",
+      "paths": [
+        {
+          "path": "Application Support/Claude",
+          "kind": "applicationSupport"
+        }
+      ]
+    },
+    {
+      "bundleID": "com.todesktop.230313mzl4w4u92",
+      "name": "Cursor",
+      "paths": [
+        {
+          "path": "Application Support/Cursor",
+          "kind": "applicationSupport",
+          "warning": "Holds editor settings, extension state and unsaved editor backups."
+        }
+      ]
+    },
+    {
+      "bundleID": "dev.zed.Zed",
+      "name": "Zed",
+      "paths": [
+        {
+          "path": "Application Support/Zed",
+          "kind": "applicationSupport",
+          "warning": "Holds editor settings, extension state and unsaved editor backups."
+        }
+      ]
+    },
+    {
+      "bundleID": "com.github.GitHubClient",
+      "name": "GitHub Desktop",
+      "paths": [
+        {
+          "path": "Application Support/GitHub Desktop",
+          "kind": "applicationSupport"
+        }
+      ]
+    },
+    {
+      "bundleID": "com.sublimetext.4",
+      "name": "Sublime Text",
+      "paths": [
+        {
+          "path": "Application Support/Sublime Text",
+          "kind": "applicationSupport",
+          "warning": "Holds editor settings, extension state and unsaved editor backups."
+        }
+      ]
+    },
+    {
+      "bundleID": "company.thebrowser.Browser",
+      "name": "Arc",
+      "paths": [
+        {
+          "path": "Application Support/Arc",
+          "kind": "applicationSupport",
+          "warning": "Browser profiles: bookmarks, history, saved passwords and extensions."
+        }
+      ]
+    },
+    {
+      "bundleID": "com.vivaldi.Vivaldi",
+      "name": "Vivaldi",
+      "paths": [
+        {
+          "path": "Application Support/Vivaldi",
+          "kind": "applicationSupport",
+          "warning": "Browser profiles: bookmarks, history, saved passwords and extensions."
+        }
+      ]
+    },
+    {
+      "bundleID": "com.obsproject.obs-studio",
+      "name": "OBS Studio",
+      "paths": [
+        {
+          "path": "Application Support/obs-studio",
+          "kind": "applicationSupport"
+        }
+      ]
+    },
+    {
+      "bundleID": "org.blenderfoundation.blender",
+      "name": "Blender",
+      "paths": [
+        {
+          "path": "Application Support/Blender",
+          "kind": "applicationSupport"
+        }
+      ]
+    },
+    {
+      "bundleID": "com.unity3d.unityhub",
+      "name": "Unity Hub",
+      "paths": [
+        {
+          "path": "Application Support/UnityHub",
+          "kind": "applicationSupport"
+        }
+      ]
+    },
+    {
+      "bundleID": "com.microsoft.teams",
+      "name": "Microsoft Teams (classic)",
+      "paths": [
+        {
+          "path": "Application Support/Microsoft/Teams",
+          "kind": "applicationSupport"
+        }
+      ]
+    },
+    {
+      "bundleID": "com.bitwarden.desktop",
+      "name": "Bitwarden",
+      "paths": [
+        {
+          "path": "Application Support/Bitwarden",
+          "kind": "applicationSupport",
+          "warning": "May hold an offline copy of the password vault."
+        }
+      ]
+    },
+    {
+      "bundleID": "com.linear",
+      "name": "Linear",
+      "paths": [
+        {
+          "path": "Application Support/Linear",
+          "kind": "applicationSupport"
+        }
+      ]
+    }
+  ],
+  "criticalContainers": [
+    {
+      "bundleID": "com.docker.docker",
+      "warning": "Contains Docker's virtual machine disk with all images, containers and volumes."
+    },
+    {
+      "bundleID": "com.utmapp.UTM",
+      "warning": "Contains virtual machine disks."
+    },
+    {
+      "bundleID": "com.parallels.desktop.console",
+      "warning": "May reference virtual machine data."
+    }
+  ],
+  "nonAppIdentifierPrefixes": [
+    "com.apple.",
+    "group.com.apple.",
+    "org.swift.",
+    "com.plausiblelabs.",
+    "com.crashlytics",
+    "io.fabric.",
+    "org.sparkle-project.",
+    "com.google.keystone",
+    "com.google.googleupdater",
+    "com.microsoft.autoupdate",
+    "io.sentry",
+    "com.bugsnag",
+    "com.segment.",
+    "com.mixpanel",
+    "org.llvm.",
+    "com.github.electron",
+    "org.chromium.",
+    "com.adobe.acc",
+    "com.adobe.aam",
+    "com.oracle.java",
+    "org.python.",
+    "org.nodejs.",
+    "com.openappbox.puremac",
+    "com.onevcat.",
+    "com.hackemist.",
+    "com.alamofire.",
+    "org.cocoapods.",
+    "com.firebase",
+    "com.google.firebase",
+    "com.google.gtm",
+    "com.facebook.sdk",
+    "com.facebook.fbsdk",
+    "com.squareup.",
+    "io.realm",
+    "com.pinterest.pincache",
+    "com.rs.sdwebimage",
+    "com.amplitude",
+    "com.appsflyer",
+    "com.braze",
+    "com.datadoghq",
+    "com.newrelic",
+    "com.instabug",
+    "com.apollographql",
+    "org.webkit.",
+    "com.github.sparkle",
+    "net.sparkle-project",
+    "io.flutter",
+    "com.google.dart",
+    "org.nodejs",
+    "com.electron.",
+    "com.github.Electron",
+    "org.mozilla.crashreporter",
+    "com.getsentry",
+    "io.branch",
+    "com.mapbox",
+    "com.revenuecat",
+    "com.stripe."
+  ]
+}

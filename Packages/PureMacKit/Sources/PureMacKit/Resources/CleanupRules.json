@@ -1,0 +1,687 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "2026.10.2",
+  "rules": [
+    {
+      "id": "app-caches.installed",
+      "title": "App caches",
+      "description": "Cache folder named exactly after an installed app's bundle identifier. macOS designates ~/Library/Caches for data apps can recreate.",
+      "category": "appCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "{bundleID}"
+        ]
+      ],
+      "itemType": "directory",
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "The app recreates its cache; it may start more slowly once and re-download some content.",
+      "evidence": "Exact bundle-identifier folder of an installed, non-Apple app inside ~/Library/Caches.",
+      "tests": [
+        "RuleEngineTests.appCachesMatchInstalledAppsOnly"
+      ]
+    },
+    {
+      "id": "browser.chrome.cache",
+      "title": "Google Chrome cache",
+      "description": "Chrome's per-profile web cache (not bookmarks, passwords or history, which live in Application Support).",
+      "category": "browserCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "Google",
+          "Chrome",
+          "*"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.google.Chrome"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Web pages load from the network again; sites may be slower the first time.",
+      "evidence": "Documented Chrome cache location.",
+      "tests": [
+        "RuleEngineTests.browserCacheRulesRequireBrowserClosed"
+      ]
+    },
+    {
+      "id": "browser.firefox.cache",
+      "title": "Firefox cache",
+      "description": "Firefox's per-profile web cache (profiles themselves are in Application Support and are not touched).",
+      "category": "browserCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "Firefox",
+          "Profiles",
+          "*"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "org.mozilla.firefox"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Web pages load from the network again.",
+      "evidence": "Documented Firefox cache location.",
+      "tests": [
+        "RuleEngineTests.browserCacheRulesRequireBrowserClosed"
+      ]
+    },
+    {
+      "id": "browser.brave.cache",
+      "title": "Brave cache",
+      "description": "Brave's per-profile web cache.",
+      "category": "browserCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "BraveSoftware",
+          "Brave-Browser",
+          "*"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.brave.Browser"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Web pages load from the network again.",
+      "evidence": "Documented Brave cache location.",
+      "tests": [
+        "RuleEngineTests.catalogIsValid"
+      ]
+    },
+    {
+      "id": "browser.edge.cache",
+      "title": "Microsoft Edge cache",
+      "description": "Edge's per-profile web cache.",
+      "category": "browserCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "Microsoft Edge",
+          "*"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.microsoft.edgemac"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Web pages load from the network again.",
+      "evidence": "Documented Edge cache location.",
+      "tests": [
+        "RuleEngineTests.catalogIsValid"
+      ]
+    },
+    {
+      "id": "electron.slack.cache",
+      "title": "Slack caches",
+      "description": "Chromium cache folders inside Slack's data folder. Messages, sign-in and settings are not touched.",
+      "category": "appCache",
+      "risk": "low",
+      "root": "Library/Application Support",
+      "patterns": [
+        [
+          "Slack",
+          "Cache"
+        ],
+        [
+          "Slack",
+          "Code Cache"
+        ],
+        [
+          "Slack",
+          "GPUCache"
+        ],
+        [
+          "Slack",
+          "Service Worker",
+          "CacheStorage"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.tinyspeck.slackmacgap"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Slack re-downloads images and recompiles scripts; first launch is slower.",
+      "evidence": "Standard Electron/Chromium cache folder names inside Slack's documented data folder.",
+      "tests": [
+        "RuleEngineTests.electronCacheRulesOnlyTouchCacheFolders"
+      ]
+    },
+    {
+      "id": "electron.vscode.cache",
+      "title": "Visual Studio Code caches",
+      "description": "Chromium caches and cached extension downloads inside VS Code's data folder. Settings, extensions and backups are not touched.",
+      "category": "appCache",
+      "risk": "low",
+      "root": "Library/Application Support",
+      "patterns": [
+        [
+          "Code",
+          "Cache"
+        ],
+        [
+          "Code",
+          "CachedData"
+        ],
+        [
+          "Code",
+          "Code Cache"
+        ],
+        [
+          "Code",
+          "GPUCache"
+        ],
+        [
+          "Code",
+          "CachedExtensionVSIXs"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.microsoft.VSCode"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "VS Code recompiles cached code on next launch; startup is slower once.",
+      "evidence": "Standard Electron cache folder names inside VS Code's documented data folder.",
+      "tests": [
+        "RuleEngineTests.electronCacheRulesOnlyTouchCacheFolders"
+      ]
+    },
+    {
+      "id": "electron.discord.cache",
+      "title": "Discord caches",
+      "description": "Chromium cache folders inside Discord's data folder.",
+      "category": "appCache",
+      "risk": "low",
+      "root": "Library/Application Support",
+      "patterns": [
+        [
+          "discord",
+          "Cache"
+        ],
+        [
+          "discord",
+          "Code Cache"
+        ],
+        [
+          "discord",
+          "GPUCache"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.hnc.Discord"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Discord re-downloads images and recompiles scripts.",
+      "evidence": "Standard Electron cache folder names inside Discord's documented data folder.",
+      "tests": [
+        "RuleEngineTests.catalogIsValid"
+      ]
+    },
+    {
+      "id": "pkg.homebrew.downloads",
+      "title": "Homebrew download cache",
+      "description": "Downloaded bottles and casks kept by Homebrew after installing.",
+      "category": "packageManagerCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "Homebrew",
+          "downloads"
+        ],
+        [
+          "Homebrew",
+          "Cask"
+        ]
+      ],
+      "itemType": "directory",
+      "requiresAppClosed": false,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Homebrew downloads packages again if you reinstall them. Alternatively run `brew cleanup`.",
+      "evidence": "Homebrew's documented cache folder (`brew --cache`).",
+      "tests": [
+        "RuleEngineTests.packageManagerCaches"
+      ]
+    },
+    {
+      "id": "pkg.pip.cache",
+      "title": "pip cache",
+      "description": "Python package downloads cached by pip.",
+      "category": "packageManagerCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "pip"
+        ]
+      ],
+      "itemType": "directory",
+      "requiresAppClosed": false,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "pip downloads packages again when needed.",
+      "evidence": "pip's documented cache folder on macOS.",
+      "tests": [
+        "RuleEngineTests.packageManagerCaches"
+      ]
+    },
+    {
+      "id": "pkg.yarn.cache",
+      "title": "Yarn cache",
+      "description": "Package archives cached by Yarn.",
+      "category": "packageManagerCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "Yarn"
+        ]
+      ],
+      "itemType": "directory",
+      "requiresAppClosed": false,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Yarn downloads packages again when needed.",
+      "evidence": "Yarn's documented cache folder on macOS.",
+      "tests": [
+        "RuleEngineTests.packageManagerCaches"
+      ]
+    },
+    {
+      "id": "pkg.cocoapods.cache",
+      "title": "CocoaPods cache",
+      "description": "Pod sources cached by CocoaPods.",
+      "category": "packageManagerCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "CocoaPods"
+        ]
+      ],
+      "itemType": "directory",
+      "requiresAppClosed": false,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "CocoaPods downloads pods again on the next install.",
+      "evidence": "CocoaPods' documented cache folder.",
+      "tests": [
+        "RuleEngineTests.packageManagerCaches"
+      ]
+    },
+    {
+      "id": "pkg.npm.cacache",
+      "title": "npm cache",
+      "description": "npm's content-addressable package cache.",
+      "category": "packageManagerCache",
+      "risk": "review",
+      "root": ".npm",
+      "patterns": [
+        [
+          "_cacache"
+        ]
+      ],
+      "itemType": "directory",
+      "requiresAppClosed": false,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "npm downloads packages again; offline installs stop working until it does. npm's own command is `npm cache clean --force`.",
+      "evidence": "npm's documented cache folder (`npm config get cache`).",
+      "tests": [
+        "RuleEngineTests.packageManagerCaches"
+      ]
+    },
+    {
+      "id": "dev.xcode.deriveddata",
+      "title": "Xcode DerivedData",
+      "description": "Build products and indexes Xcode creates for each project.",
+      "category": "developerCache",
+      "risk": "review",
+      "root": "Library/Developer/Xcode",
+      "patterns": [
+        [
+          "DerivedData",
+          "*"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.apple.dt.Xcode"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "The next build of each project is a full rebuild and re-index, which can take a long time.",
+      "evidence": "Xcode's default DerivedData location.",
+      "tests": [
+        "RuleEngineTests.developerRulesAreReviewOnly"
+      ]
+    },
+    {
+      "id": "dev.xcode.devicesupport",
+      "title": "Xcode device support files",
+      "description": "Debug symbols copied from devices you connected to Xcode.",
+      "category": "developerCache",
+      "risk": "review",
+      "root": "Library/Developer/Xcode",
+      "patterns": [
+        [
+          "iOS DeviceSupport",
+          "*"
+        ],
+        [
+          "watchOS DeviceSupport",
+          "*"
+        ],
+        [
+          "tvOS DeviceSupport",
+          "*"
+        ],
+        [
+          "visionOS DeviceSupport",
+          "*"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.apple.dt.Xcode"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Xcode copies symbols again the next time you connect that device, which can take several minutes.",
+      "evidence": "Xcode's documented device support folders.",
+      "tests": [
+        "RuleEngineTests.developerRulesAreReviewOnly"
+      ]
+    },
+    {
+      "id": "dev.coresimulator.caches",
+      "title": "Simulator caches",
+      "description": "Caches created by the iOS Simulator (not simulator devices or their data).",
+      "category": "developerCache",
+      "risk": "review",
+      "root": "Library/Developer/CoreSimulator/Caches",
+      "patterns": [
+        [
+          "*"
+        ]
+      ],
+      "itemType": "directory",
+      "bundleIDs": [
+        "com.apple.iphonesimulator"
+      ],
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Simulators rebuild their caches on next boot.",
+      "evidence": "CoreSimulator cache folder.",
+      "tests": [
+        "RuleEngineTests.developerRulesAreReviewOnly"
+      ]
+    },
+    {
+      "id": "logs.app.old",
+      "title": "Old app logs",
+      "description": "Log folders of installed apps with no changes for at least 30 days.",
+      "category": "logs",
+      "risk": "low",
+      "root": "Library/Logs",
+      "patterns": [
+        [
+          "{bundleID}"
+        ]
+      ],
+      "itemType": "directory",
+      "minimumAgeDays": 30,
+      "requiresAppClosed": true,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "Old logs are no longer available for troubleshooting.",
+      "evidence": "Exact bundle-identifier folder of an installed app in ~/Library/Logs, unchanged for 30 days.",
+      "tests": [
+        "RuleEngineTests.ageThresholdUsesNewestContent"
+      ]
+    },
+    {
+      "id": "logs.diagnostic-reports.old",
+      "title": "Old crash and diagnostic reports",
+      "description": "Crash and hang reports older than 30 days.",
+      "category": "crashReports",
+      "risk": "low",
+      "root": "Library/Logs",
+      "patterns": [
+        [
+          "DiagnosticReports",
+          "*"
+        ]
+      ],
+      "itemType": "file",
+      "minimumAgeDays": 30,
+      "requiresAppClosed": false,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "These reports are no longer available to you or to developers you might send them to.",
+      "evidence": "macOS's per-user diagnostic report folder.",
+      "tests": [
+        "RuleEngineTests.ageThresholdUsesNewestContent"
+      ]
+    },
+    {
+      "id": "installers.downloads.old",
+      "title": "Old downloaded installers",
+      "description": "Disk images and installer packages in Downloads that are older than 30 days.",
+      "category": "installers",
+      "risk": "review",
+      "root": "Downloads",
+      "patterns": [
+        [
+          "*"
+        ]
+      ],
+      "itemType": "file",
+      "nameSuffixes": [
+        ".dmg",
+        ".pkg",
+        ".mpkg",
+        ".xip"
+      ],
+      "minimumAgeDays": 30,
+      "requiresAppClosed": false,
+      "removalStrategy": "trashItem",
+      "regenerationImpact": "You would need to download the installer again.",
+      "evidence": "Installer file types directly in ~/Downloads.",
+      "tests": [
+        "RuleEngineTests.installersOnlyMatchInstallerTypes"
+      ]
+    },
+    {
+      "itemType": "directory",
+      "removalStrategy": "trashItem",
+      "requiresAppClosed": true,
+      "id": "app-caches.named",
+      "title": "App caches (by app name)",
+      "description": "Cache folder named exactly like an installed app (for example Steam). macOS designates ~/Library/Caches for data apps can recreate.",
+      "category": "appCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "{appName}"
+        ]
+      ],
+      "regenerationImpact": "The app recreates its cache; it may start more slowly once and re-download some content.",
+      "evidence": "Folder in ~/Library/Caches named exactly like an installed, non-Apple app.",
+      "tests": [
+        "RuleEngineTests.namedAndUpdateCachesOfInstalledApps"
+      ]
+    },
+    {
+      "itemType": "directory",
+      "removalStrategy": "trashItem",
+      "requiresAppClosed": true,
+      "id": "app-updates.shipit",
+      "title": "Downloaded app updates",
+      "description": "Update packages an installed app downloaded with its updater (Squirrel “ShipIt”). They are only needed until the update is installed.",
+      "category": "appCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "{bundleID}.ShipIt"
+        ]
+      ],
+      "regenerationImpact": "The app downloads its next update again when one is available.",
+      "evidence": "Folder named after an installed app's bundle identifier followed by .ShipIt, the updater's download location.",
+      "tests": [
+        "RuleEngineTests.namedAndUpdateCachesOfInstalledApps"
+      ]
+    },
+    {
+      "itemType": "directory",
+      "removalStrategy": "trashItem",
+      "requiresAppClosed": true,
+      "id": "browser.firefox.updates",
+      "title": "Firefox update downloads",
+      "description": "Firefox updates that were downloaded to be installed.",
+      "category": "browserCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "Mozilla",
+          "updates"
+        ]
+      ],
+      "bundleIDs": [
+        "org.mozilla.firefox"
+      ],
+      "regenerationImpact": "Firefox downloads its next update again when one is available.",
+      "evidence": "Documented Firefox update download folder.",
+      "tests": [
+        "RuleEngineTests.namedAndUpdateCachesOfInstalledApps"
+      ]
+    },
+    {
+      "itemType": "directory",
+      "removalStrategy": "trashItem",
+      "requiresAppClosed": true,
+      "id": "electron.app.cache",
+      "title": "Web caches of desktop apps",
+      "description": "Chromium cache folders inside the data folder of an installed app built with Electron. Sign-ins, settings and documents are not touched.",
+      "category": "appCache",
+      "risk": "low",
+      "root": "Library/Application Support",
+      "patterns": [
+        [
+          "{electronApp}",
+          "Cache"
+        ],
+        [
+          "{electronApp}",
+          "Code Cache"
+        ],
+        [
+          "{electronApp}",
+          "GPUCache"
+        ],
+        [
+          "{electronApp}",
+          "DawnGraphiteCache"
+        ],
+        [
+          "{electronApp}",
+          "DawnWebGPUCache"
+        ],
+        [
+          "{electronApp}",
+          "CachedData"
+        ],
+        [
+          "{electronApp}",
+          "Service Worker",
+          "CacheStorage"
+        ]
+      ],
+      "regenerationImpact": "The app re-downloads images and recompiles scripts; the first launch is slower.",
+      "evidence": "Standard Chromium cache folder names inside the data folder of an installed app that contains the Electron framework.",
+      "tests": [
+        "RuleEngineTests.electronAppCachesAreFoundByFramework"
+      ]
+    },
+    {
+      "itemType": "directory",
+      "removalStrategy": "trashItem",
+      "requiresAppClosed": false,
+      "id": "dev.tool.caches",
+      "title": "Developer tool caches",
+      "description": "Download and build caches of command-line developer tools (node-gyp, Go, the VS Code C/C++ extension, Swift Package Manager, pnpm, TypeScript).",
+      "category": "packageManagerCache",
+      "risk": "low",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "node-gyp"
+        ],
+        [
+          "go-build"
+        ],
+        [
+          "vscode-cpptools"
+        ],
+        [
+          "org.swift.swiftpm"
+        ],
+        [
+          "pnpm"
+        ],
+        [
+          "typescript"
+        ]
+      ],
+      "regenerationImpact": "Each tool downloads or rebuilds what it needs the next time it runs; the first build can be slower.",
+      "evidence": "Documented cache folders of these tools on macOS.",
+      "tests": [
+        "RuleEngineTests.developerToolCaches"
+      ]
+    },
+    {
+      "itemType": "directory",
+      "removalStrategy": "trashItem",
+      "requiresAppClosed": false,
+      "id": "dev.browser-test.downloads",
+      "title": "Browser builds for automated tests",
+      "description": "Browsers that Playwright and Cypress downloaded to run automated tests.",
+      "category": "developerCache",
+      "risk": "review",
+      "root": "Library/Caches",
+      "patterns": [
+        [
+          "ms-playwright",
+          "*"
+        ],
+        [
+          "Cypress",
+          "*"
+        ]
+      ],
+      "regenerationImpact": "Install them again with `npx playwright install` or `npx cypress install`, which downloads several hundred megabytes.",
+      "evidence": "Documented download folders of Playwright and Cypress.",
+      "tests": [
+        "RuleEngineTests.developerToolCaches"
+      ]
+    }
+  ]
+}
