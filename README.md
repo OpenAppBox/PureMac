@@ -218,9 +218,21 @@ It depends on your Mac. PureMac shows the exact size of everything it proposes b
 <details>
 <summary><b>Why pay for an open-source app?</b></summary>
 
-You don't have to — the code is here for anyone to read and build. The subscription is the easy
-way to get a ready-to-use, signed app that stays up to date, with support when you need it. And it's
-what funds PureMac's development: no ads, no data deals, no upsells.
+You don't have to — the code is here for anyone to read and build. But here's why a small
+subscription matters:
+
+- **"Free" rarely lasts.** Free apps run on spare time and goodwill. Over time, many slow down, stop
+  getting updates and quietly disappear. What's left are the expensive options, and their prices
+  only go up.
+- **Small contributions keep good software alive.** A small yearly price from the people who use
+  PureMac pays for its development, updates as macOS changes, and support.
+- **It keeps PureMac honest.** Your subscription is our only income: no ads, no data deals, no
+  upsells. We never have a reason to treat you as the product.
+- **It's simply easier.** A ready-to-use, signed app that updates itself — nothing to build, nothing
+  to maintain.
+
+And because the code is open, PureMac can't be taken away from you. Whatever happens, it stays
+public.
 </details>
 
 <details>
