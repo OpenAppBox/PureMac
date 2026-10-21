@@ -1,5 +1,17 @@
 # What's new in PureMac
 
+## 1.0.0 — On the Mac App Store
+
+- PureMac is now on the **Mac App Store**, with one yearly subscription that includes every
+  feature, all updates and support. Builds you make from this source code stay free.
+- Runs in Apple's **App Sandbox**: PureMac sees only the folders you allow — your home folder, and
+  Macintosh HD the first time you scan the entire disk.
+- Apps you're using are never quit by PureMac: **Show** brings them to the front so you can quit
+  them, and their caches join the cleanup by themselves.
+- **Performance** now shows the whole Mac's CPU use; simulators are counted from their files.
+- The local database no longer keeps a large log file after big scans.
+- Available in 23 languages, now on the App Store in every one of them.
+
 ## 0.13.0 — First public source release
 
 PureMac's source code is now public. This version brings the biggest Smart Clean update yet.
@@ -11,11 +23,12 @@ PureMac's source code is now public. This version brings the biggest Smart Clean
 - Opens ready: one total and one **Review & Clean** button.
 - **Free up more:** one tap each for unused developer data, installers older than a month and
   leftovers of deleted apps — plus how much is already waiting in your Trash.
-- **Quit & Include:** free the caches of apps you're using without leaving Smart Clean.
+- **Apps you're using:** their caches wait, and join by themselves as soon as you quit those apps.
 - Experts can still open the full list, with every item's reason.
 
 ### Scan your whole disk
-- Choose **Home Folder** or **Entire Disk** right next to the Scan button.
+- Choose **Home Folder** or **Entire Disk** right next to the Scan button. PureMac asks you once
+  to allow Macintosh HD.
 - When a lot of your disk wasn't part of the last scan, Overview tells you how much and offers to
   scan everything.
 - A whole-disk scan shows the same colorful maps and charts as a home-folder scan, and PureMac
@@ -33,7 +46,8 @@ PureMac's source code is now public. This version brings the biggest Smart Clean
 - Performance: live measurements with trend lines and health checks that show their evidence.
 
 ### Everywhere
-- **18 languages**, including Arabic with a right-to-left interface, reviewed by native speakers.
+- **23 languages**, including Arabic with a right-to-left interface — new: Spanish, Hindi, Vietnamese,
+  Thai and Indonesian.
 - New Settings, organized like System Settings, with search.
 - Storage Explorer updates instantly after a cleanup or a Put Back — no rescan needed.
 - Cleanup history is recorded before anything moves, so a cleanup can always be traced and undone.

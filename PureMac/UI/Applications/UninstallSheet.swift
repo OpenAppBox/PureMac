@@ -57,12 +57,11 @@ struct UninstallSheet: View {
             if !running.isEmpty {
                 HStack {
                     NoticeView(tone: .warning, title: running.count == 1 ? "\(running[0].name) is running" : "\(running.map(\.name).formatted(.list(type: .and))) are running",
-                               message: app.apps.canQuitApps ? "Quit first; running apps are skipped. PureMac asks them to quit normally and never force-quits." : "Quit them first; running apps are skipped.")
-                    if app.apps.canQuitApps {
-                        Button(running.count == 1 ? "Quit \(running[0].name)" : "Quit \(running.count) Apps") {
-                            for target in running { app.apps.requestQuit(target) }
-                        }
+                               message: "Quit them first; running apps are skipped.")
+                    Button(running.count == 1 ? "Show \(running[0].name)" : "Show \(running.count) Apps") {
+                        app.apps.bringToFront(running)
                     }
+                    .help("Brings these apps to the front so you can quit them (⌘Q).")
                 }
             }
             // Casual view: one line per app. Every file stays one click away.

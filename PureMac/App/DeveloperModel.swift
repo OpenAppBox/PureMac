@@ -2,21 +2,16 @@ import Foundation
 import Observation
 import PureMacKit
 
-/// Developer storage locations, simulators and Docker (inspect).
+/// Developer storage locations and simulators (inspect).
 @Observable
 final class DeveloperModel {
     /// Every location on the page, including project node_modules folders from the last scan.
     private(set) var items: [DeveloperItem] = [] { didSet { rebuildSizes() } }
     private(set) var simulators: SimulatorSummary?
-    private(set) var docker: DockerSummary?
     private(set) var isLoading = false
     private(set) var loadedAt: Date?
-    private(set) var toolMessage: String?
-    private(set) var isRunningTool = false
     var selection: Set<String> = []
     var selectedItemID: DeveloperItem.ID?
-    /// `simctl` and `docker` can't run inside the App Sandbox (App Store edition).
-    let toolsAvailable = !PathTools.isSandboxed
 
     /// Sizes of every selectable path on the page (rebuilt once per load).
     private(set) var selectableSizes: [String: Int64] = [:]
@@ -33,19 +28,15 @@ final class DeveloperModel {
         guard !isLoading else { return }
         isLoading = true
         var found = await DeveloperStorageInspector().inspect()
-        if toolsAvailable {
-            async let sims = Task.detached(priority: .utility) { DeveloperStorageInspector.simulatorSummary() }.value
-            async let dock = Task.detached(priority: .utility) { DeveloperStorageInspector.dockerSummary() }.value
-            simulators = await sims
-            docker = await dock
-        }
+        // The App Sandbox can't run `simctl`, so simulators are counted from CoreSimulator's files.
+        simulators = await Task.detached(priority: .utility) { DeveloperStorageInspector.simulatorSummaryFromFiles() }.value
         var nodeModules: [FileRecord] = []
         if let store = app?.store, let session = try? await store.latestBrowsableSession() {
             // Only top-level node_modules folders of projects (never nested ones), from the latest scan.
             nodeModules = ((try? await store.search(sessionID: session.id, text: "node_modules", limit: 300)) ?? [])
                 .filter { $0.name == "node_modules" && $0.isContainer && !Self.hasNodeModulesAncestor($0.path) }
         }
-        found += Self.syntheticItems(nodeModules: nodeModules, docker: docker, existing: found)
+        found += Self.syntheticItems(nodeModules: nodeModules)
         items = found
         if selectedItemID == nil || !items.contains(where: { $0.id == selectedItemID }) {
             selectedItemID = largestItem?.id
@@ -55,11 +46,10 @@ final class DeveloperModel {
     }
 
     #if DEBUG
-    func _demoSet(items: [DeveloperItem], simulators: SimulatorSummary?, docker: DockerSummary?, nodeModules: [FileRecord]) {
+    func _demoSet(items: [DeveloperItem], simulators: SimulatorSummary?, nodeModules: [FileRecord]) {
         guard app?.isDemo == true else { return }
         self.simulators = simulators
-        self.docker = docker
-        self.items = items + Self.syntheticItems(nodeModules: nodeModules, docker: docker, existing: items)
+        self.items = items + Self.syntheticItems(nodeModules: nodeModules)
         selectedItemID = largestItem?.id
         loadedAt = Date()
     }
@@ -70,9 +60,8 @@ final class DeveloperModel {
     }
     #endif
 
-    /// node_modules folders become one "Project Dependencies" location; Docker without Docker
-    /// Desktop's data folder (Colima, OrbStack…) still gets an inspect-only entry.
-    private static func syntheticItems(nodeModules: [FileRecord], docker: DockerSummary?, existing: [DeveloperItem]) -> [DeveloperItem] {
+    /// node_modules folders become one "Project Dependencies" location.
+    private static func syntheticItems(nodeModules: [FileRecord]) -> [DeveloperItem] {
         var extra: [DeveloperItem] = []
         if !nodeModules.isEmpty {
             let children = nodeModules.map { record in
@@ -93,14 +82,6 @@ final class DeveloperModel {
                 path: nil, size: total, risk: .review,
                 warning: String(localized: "Remove a project’s node_modules only if you can reinstall its dependencies (npm install) — for example, for projects you no longer work on."),
                 handling: .selectChildren, children: children, toolCommandHint: "npm install"))
-        }
-        if let docker, docker.installed, !existing.contains(where: { $0.group == .containers }) {
-            extra.append(DeveloperItem(
-                id: "docker.cli", group: .containers, title: String(localized: "Docker"),
-                detail: String(localized: "Images, containers, volumes and build cache, as reported by Docker."),
-                path: nil, size: nil, risk: .protected,
-                handling: .inspectOnly(reason: String(localized: "Inspect only. Manage images and volumes in Docker or with `docker` commands.")),
-                toolCommandHint: "docker system df -v"))
         }
         return extra
     }
@@ -198,31 +179,4 @@ final class DeveloperModel {
         guard let app, !selection.isEmpty else { return }
         app.reviewUserSelection(Array(selection))
     }
-
-    func deleteUnavailableSimulators() {
-        guard !isRunningTool else { return }
-        isRunningTool = true
-        Task {
-            let outcome = await Task.detached(priority: .userInitiated) { DeveloperStorageInspector.deleteUnavailableSimulators() }.value
-            toolMessage = outcome.message
-            isRunningTool = false
-            await load()
-        }
-    }
-}
-
-extension DockerSummary.Row {
-    /// Bytes from Docker's human-readable sizes ("41.2GB", "18.6GB (45%)"). Docker uses powers of 1000.
-    static func bytes(_ text: String) -> Int64? {
-        let token = text.split(separator: " ").first.map(String.init) ?? text
-        let units: [(String, Double)] = [("TB", 1e12), ("GB", 1e9), ("MB", 1e6), ("kB", 1e3), ("KB", 1e3), ("B", 1)]
-        for (unit, factor) in units where token.hasSuffix(unit) {
-            guard let value = Double(token.dropLast(unit.count)) else { return nil }
-            return Int64(value * factor)
-        }
-        return nil
-    }
-
-    var sizeBytes: Int64? { Self.bytes(size) }
-    var reclaimableBytes: Int64? { Self.bytes(reclaimable) }
 }

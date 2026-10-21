@@ -3,15 +3,16 @@ import Foundation
 import Observation
 import PureMacKit
 
-/// Folder access for the Mac App Store edition.
+/// Folder access inside the App Sandbox.
 ///
 /// Inside the App Sandbox PureMac can only read and move items in folders the user picked in an
 /// Open panel. Each grant is remembered as a security-scoped bookmark and reactivated at launch,
-/// so the user grants their home folder (and /Applications, for uninstalling) once.
-/// Outside the sandbox (the direct-download edition) every check passes and nothing is stored.
+/// so the user grants their home folder, the startup disk (for entire-disk scans) and
+/// /Applications (for uninstalling) once each.
+/// Outside the sandbox (unsigned test builds) every check passes and nothing is stored.
 @Observable
 final class FolderAccess {
-    /// `false` in the direct-download edition: normal user permissions apply.
+    /// `false` outside the sandbox: normal user permissions apply.
     let isRequired: Bool
     /// Paths with an active grant.
     private(set) var granted: [String] = []

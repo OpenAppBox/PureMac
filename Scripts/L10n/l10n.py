@@ -25,8 +25,22 @@ PLURALS = {
     'de': ['one', 'other'], 'nl': ['one', 'other'], 'sv': ['one', 'other'], 'nb': ['one', 'other'],
     'da': ['one', 'other'], 'fi': ['one', 'other'], 'tr': ['one', 'other'], 'en': ['one', 'other'],
     'ja': ['other'], 'ko': ['other'], 'zh-Hans': ['other'], 'zh-Hant': ['other'],
+    'es': ['one', 'many', 'other'], 'hi': ['one', 'other'],
+    'vi': ['other'], 'th': ['other'], 'id': ['other'],
 }
 SPEC = re.compile(r'%(?:(\d+)\$)?(lld|ld|d|@|f)')
+
+def xcode_json(o, ind=0):
+    """JSON the way Xcode writes .xcstrings (" : " separators, empty objects on two lines), so a
+    catalog written here and one saved by Xcode differ only in what actually changed."""
+    pad = '  ' * ind
+    if isinstance(o, dict):
+        if not o: return '{\n\n' + pad + '}'
+        return '{\n' + ',\n'.join(pad + '  ' + json.dumps(k, ensure_ascii=False) + ' : ' + xcode_json(v, ind + 1) for k, v in o.items()) + '\n' + pad + '}'
+    if isinstance(o, list):
+        if not o: return '[\n\n' + pad + ']'
+        return '[\n' + ',\n'.join(pad + '  ' + xcode_json(v, ind + 1) for v in o) + '\n' + pad + ']'
+    return json.dumps(o, ensure_ascii=False)
 
 def load(prefix):
     path = os.path.join(ROOT, CATALOGS[prefix])
@@ -67,12 +81,14 @@ def do_import(lang, file):
         for id_, value in data.items():
             if not id_.startswith(prefix) or not id_[1:].isdigit(): continue
             key = ks[int(id_[1:])]
-            locs = doc['strings'][key].setdefault('localizations', {})
+            entry = doc['strings'][key]
+            locs = dict(entry.get('localizations', {}))
             if isinstance(value, dict):
-                locs[lang] = {'variations': {'plural': {c: {'stringUnit': {'state': 'translated', 'value': v}} for c, v in value.items()}}}
+                locs[lang] = {'variations': {'plural': {c: {'stringUnit': {'state': 'translated', 'value': value[c]}} for c in sorted(value)}}}
             else:
                 locs[lang] = {'stringUnit': {'state': 'translated', 'value': value}}
-        json.dump(doc, open(path, 'w'), ensure_ascii=False, indent=2, sort_keys=True)
+            entry['localizations'] = {l: locs[l] for l in sorted(locs)}   # Xcode keeps languages sorted
+        open(path, 'w').write(xcode_json(doc))
     print('imported', len(data), 'entries for', lang)
 
 def check(lang):

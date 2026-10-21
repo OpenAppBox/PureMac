@@ -10,6 +10,15 @@ struct SettingsView: View {
     @State private var query = ""
 
     var body: some View {
+        if app.subscription.isLocked {
+            ContentUnavailableView("Subscribe in the PureMac window to use PureMac.", systemImage: "lock.fill")
+                .frame(width: 820, height: 600)
+        } else {
+            panes
+        }
+    }
+
+    private var panes: some View {
         HStack(spacing: 0) {
             sidebar.frame(width: 220)
             Divider()
@@ -261,6 +270,7 @@ private struct GeneralPane: View {
 
     var body: some View {
         @Bindable var settings = app.settings
+        if app.subscription.isRequired { SubscriptionGroup() }
         SettingsGroup(title: "Language") {
             SettingsRow(title: "Language", symbol: "globe") {
                 Picker("Language", selection: $language) {
@@ -306,6 +316,37 @@ private struct GeneralPane: View {
 }
 
 // MARK: - Appearance
+
+/// Status of the yearly subscription (App Store copies only), with Apple's management page and
+/// Restore Purchases.
+private struct SubscriptionGroup: View {
+    @Environment(AppModel.self) private var app
+    private static let productName = "PureMac Yearly"
+
+    var body: some View {
+        let model = app.subscription
+        SettingsGroup(title: "Subscription") {
+            // The product name is the same in every language (as on the App Store).
+            SettingsRow(title: LocalizedStringKey(Self.productName), detail: detail, symbol: "checkmark.seal.fill") {
+                HStack(spacing: 8) {
+                    Button("Restore Purchases") { Task { await model.restore() } }
+                        .disabled(model.isRestoring)
+                    Button("Manage Subscription…") { NSWorkspace.shared.open(SubscriptionModel.manageURL) }
+                }
+            }
+        }
+        // Cancelling or changing the subscription happens in the App Store; show its current state.
+        .task { await model.refresh() }
+    }
+
+    private var detail: LocalizedStringKey? {
+        guard case .active(let expires, let willRenew, let billingIssue) = app.subscription.state else { return nil }
+        if billingIssue { return "Billing problem: Apple is retrying the payment. PureMac stays available meanwhile." }
+        guard let expires else { return "Subscription active" }
+        let date = expires.formatted(date: .long, time: .omitted)
+        return willRenew ? "Renews on \(date)" : "Ends on \(date)"
+    }
+}
 
 private struct AppearancePane: View {
     @Environment(AppModel.self) private var app
@@ -387,21 +428,17 @@ private struct ScanningPane: View {
         }
         SettingsGroup(title: "What PureMac scans",
                       footer: settings.scanEntireDataVolume ? "Scanning the whole Data volume includes Applications, shared and system-managed data. Most of it needs Full Disk Access to be measured; unreadable areas are reported as gaps." : nil) {
-            if !app.access.isRequired {
-                HStack(spacing: 12) {
-                    ChoiceCard(title: "My home folder", detail: "Your home folder by default. It reads names, sizes and dates — never the contents of your files.",
-                               isOn: !settings.scanEntireDataVolume, action: { settings.scanEntireDataVolume = false }) {
-                        Image(systemName: "house.fill").font(.system(size: 28)).foregroundStyle(Theme.brandBlue).frame(height: 40)
-                    }
-                    ChoiceCard(title: "Entire startup disk (Data volume)", detail: "Applications, shared and system-managed data too.",
-                               isOn: settings.scanEntireDataVolume, action: { settings.scanEntireDataVolume = true }) {
-                        Image(systemName: "internaldrive.fill").font(.system(size: 28)).foregroundStyle(Theme.brandTeal).frame(height: 40)
-                    }
+            HStack(spacing: 12) {
+                ChoiceCard(title: "My home folder", detail: "Your home folder by default. It reads names, sizes and dates — never the contents of your files.",
+                           isOn: !settings.scanEntireDataVolume, action: { settings.scanEntireDataVolume = false }) {
+                    Image(systemName: "house.fill").font(.system(size: 28)).foregroundStyle(Theme.brandBlue).frame(height: 40)
                 }
-                .settingsRow()
-            } else {
-                SettingsRow(title: "My home folder and the folders below", symbol: "house") { EmptyView() }
+                ChoiceCard(title: "Entire startup disk (Data volume)", detail: "Applications, shared and system-managed data too.",
+                           isOn: settings.scanEntireDataVolume, action: { settings.scanEntireDataVolume = true }) {
+                    Image(systemName: "internaldrive.fill").font(.system(size: 28)).foregroundStyle(Theme.brandTeal).frame(height: 40)
+                }
             }
+            .settingsRow()
         }
         SettingsGroup(title: "Also scan these folders") {
             ForEach(settings.extraScanFolders, id: \.self) { folder in
@@ -609,7 +646,8 @@ private struct PrivacyPane: View {
         }
             .task {
                 databaseSize = await app.store?.databaseSize() ?? 0
-                fullDiskAccess = await Task.detached { FullDiskAccess.status() }.value
+                let granted = app.access.hasHomeAccess
+                fullDiskAccess = await Task.detached { FullDiskAccess.status(homeGranted: granted) }.value
             }
             .confirmationDialog("Delete all scan history?", isPresented: $confirmScanClear) {
                 Button("Delete Scan History", role: .destructive) {
@@ -638,12 +676,15 @@ private struct PrivacyPane: View {
 }
 
 /// Whether PureMac has Full Disk Access, judged by reading a folder only that permission opens
-/// (no prompt is shown; macOS just refuses). Unknown in the App Sandbox or when none exists.
+/// (no prompt is shown; macOS just refuses). Unknown when none exists or, in the App Sandbox, when
+/// the home folder hasn't been granted yet.
 enum FullDiskAccess {
     enum Status { case granted, denied, unknown }
 
-    nonisolated static func status() -> Status {
-        guard !PathTools.isSandboxed else { return .unknown }
+    /// - Parameter homeGranted: in the App Sandbox, whether the home folder is granted; without it
+    ///   the sandbox, not Full Disk Access, refuses the read.
+    nonisolated static func status(homeGranted: Bool = !PathTools.isSandboxed) -> Status {
+        guard homeGranted else { return .unknown }
         let library = PathTools.userHome + "/Library/"
         for folder in ["Safari", "Mail", "Messages", "Containers/com.apple.Safari"] {
             let path = library + folder

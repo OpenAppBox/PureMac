@@ -217,11 +217,11 @@ struct SmartCleanView: View {
                               : "\(blocked.count) items (\(ByteFormat.string(model.heldBackBytes, style: byteStyle))) are held back while these apps run: \(running.map(\.name).formatted(.list(type: .and))). Quit them and PureMac checks again by itself.",
                               systemImage: "pause.circle.fill")
                                 .font(.callout).foregroundStyle(.secondary)
-                            if !running.isEmpty, app.apps.canQuitApps {
-                                Button(running.count == 1 ? "Quit & Include" : "Quit \(running.count) Apps & Include") { model.quitHeldBackApps() }
+                            if !running.isEmpty {
+                                Button(running.count == 1 ? "Show \(running[0].name)" : "Show \(running.count) Apps") { model.showHeldBackApps() }
                                     .buttonStyle(.glow(Theme.warning, prominent: false))
                                     .controlSize(.small)
-                                    .help("Asks these apps to quit normally (they may ask to save), then analyzes again. PureMac never force-quits.")
+                                    .help("Brings these apps to the front so you can quit them (⌘Q). PureMac checks again once they quit.")
                             }
                         }
                     }

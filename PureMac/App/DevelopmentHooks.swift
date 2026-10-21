@@ -90,9 +90,27 @@ enum DevelopmentHooks {
             log("last used \(sample.name): \(AppFootprint.lastUsedDate(path: sample.path).map { "\($0)" } ?? "nil")")
             log("receipts \(sample.name): \(PackageReceipts.packageIdentifiers(forFile: sample.path))")
         }
-        let top = await SystemDiagnostics.topProcesses(interval: 0.5, limit: 5)
-        log("top processes: \(top.map(\.name))")
         log("running apps: \(NSWorkspace.shared.runningApplications.count)")
+        let before = SystemDiagnostics.snapshot().cpuTicks
+        try? await Task.sleep(for: .milliseconds(500))
+        let after = SystemDiagnostics.snapshot().cpuTicks
+        log("cpu busy: \(before.flatMap { b in after.flatMap { $0.busyFraction(since: b) } }.map { "\(Int($0 * 100))%" } ?? "unavailable")")
+        let files = DeveloperStorageInspector.simulatorSummaryFromFiles()
+        log("simulators from files: \(files.map { "\($0.totalDevices) devices, \($0.unavailableDevices) unavailable, known=\($0.availabilityKnown)" } ?? "none")")
+        log("full disk access (no grant): \(FullDiskAccess.status())")
+        // Quitting another app: opens Calculator, asks it to quit normally, reports whether it did.
+        if UserDefaults.standard.bool(forKey: "PureMacSandboxProbeQuit") {
+            let calculator = URL(fileURLWithPath: "/System/Applications/Calculator.app")
+            _ = try? await NSWorkspace.shared.openApplication(at: calculator, configuration: NSWorkspace.OpenConfiguration())
+            try? await Task.sleep(for: .seconds(2))
+            let target = NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == "com.apple.calculator" }
+            let shown = AppActivation.bringToFront(bundleIdentifiers: ["com.apple.calculator"], bundlePath: calculator.path)
+            try? await Task.sleep(for: .seconds(1))
+            log("bring Calculator to front: activated=\(shown) frontmost=\(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?")")
+            let accepted = target?.terminate() ?? false
+            try? await Task.sleep(for: .seconds(2))
+            log("quit Calculator: found=\(target != nil) terminate()=\(accepted) terminated=\(target?.isTerminated ?? false)")
+        }
         NSApp.terminate(nil)
     }
 

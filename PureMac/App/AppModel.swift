@@ -7,7 +7,7 @@ import PureMacKit
 @Observable
 final class AppModel {
     let settings: AppSettings
-    /// Folder grants (App Store edition); every check passes in the direct-download edition.
+    /// Folder grants (App Sandbox); every check passes in unsigned builds, which run unsandboxed.
     let access: FolderAccess
     let databaseURL: URL
     private(set) var store: LocalStore?
@@ -25,6 +25,8 @@ final class AppModel {
     let duplicates: DuplicatesModel
     let developer: DeveloperModel
     let performance: PerformanceModel
+    /// The yearly subscription; required only in Mac App Store copies.
+    let subscription: SubscriptionModel
 
     /// `true` when the process hosts unit tests: uses a temporary database and never touches the
     /// user's real PureMac data.
@@ -84,6 +86,7 @@ final class AppModel {
         duplicates = DuplicatesModel()
         developer = DeveloperModel()
         performance = PerformanceModel()
+        subscription = SubscriptionModel(required: !isHostingTests && !isDemo && StoreOrigin.requiresSubscription)
 
         do {
             let store = try LocalStore(url: databaseURL)
@@ -102,6 +105,7 @@ final class AppModel {
         history.attach(app: self)
         duplicates.attach(app: self)
         developer.attach(app: self)
+        subscription.start()
     }
 
     /// Refreshes every view of the filesystem after a cleanup or restore.

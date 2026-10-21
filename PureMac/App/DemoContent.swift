@@ -149,12 +149,6 @@ enum DemoContent {
         }
         let nodeModules = await nodeModuleRecords(app)
         app.developer._demoSet(items: items, simulators: SimulatorSummary(totalDevices: 14, unavailableDevices: 5, runtimes: ["iOS-26-0", "iOS-26-1", "watchOS-26-0"]),
-                               docker: DockerSummary(installed: true, daemonRunning: true, rows: [
-                                   .init(type: "Images", total: "23", active: "8", size: "41.2GB", reclaimable: "18.6GB (45%)"),
-                                   .init(type: "Containers", total: "11", active: "3", size: "2.1GB", reclaimable: "1.7GB (80%)"),
-                                   .init(type: "Local Volumes", total: "9", active: "4", size: "13.4GB", reclaimable: "6.2GB (46%)"),
-                                   .init(type: "Build Cache", total: "214", active: "0", size: "7.9GB", reclaimable: "7.9GB"),
-                               ], message: nil),
                                nodeModules: nodeModules)
 
         // Performance: a believable, healthy-but-busy MacBook Pro.
@@ -162,14 +156,6 @@ enum DemoContent {
         let snapshot = SystemSnapshot(takenAt: Date(), memory: .init(physical: 32 * gib, free: gib + gib / 4, active: 10 * gib, inactive: 8 * gib, wired: 4 * gib, compressed: 3 * gib),
                                       pressure: .normal, swapTotal: 2 * gib, swapUsed: 412 << 20, thermalState: .nominal,
                                       loadAverage: (3.42, 3.11, 2.87), logicalCPUs: 12, startupVolume: volume)
-        let processes = [
-            ProcessUsage(pid: 812, name: "Frame Studio", cpuPercent: 142, residentBytes: 4_400 << 20),
-            ProcessUsage(pid: 1204, name: "Ember Browser Helper (Renderer)", cpuPercent: 38, residentBytes: 1_210 << 20),
-            ProcessUsage(pid: 977, name: "Orbit Code", cpuPercent: 21, residentBytes: 1_020 << 20),
-            ProcessUsage(pid: 401, name: "WindowServer", cpuPercent: 12, residentBytes: 640 << 20),
-            ProcessUsage(pid: 1388, name: "Slate Chat", cpuPercent: 7, residentBytes: 780 << 20),
-            ProcessUsage(pid: 233, name: "mds_stores", cpuPercent: 5, residentBytes: 210 << 20),
-        ]
         let agents = home + "/Library/LaunchAgents/"
         let launchItems = [
             LaunchItem(plistPath: agents + "com.ember.browser.updater.plist", label: "com.ember.browser.updater",
@@ -191,7 +177,7 @@ enum DemoContent {
                                            loadPerCore: 0.24 + 0.03 * sin(t / 11) + burst * 0.4,
                                            swapUsed: 412 << 20, diskFree: 0.096)
         }
-        app.performance._demoSet(snapshot: snapshot, processes: processes, launchItems: launchItems, history: history)
+        app.performance._demoSet(snapshot: snapshot, launchItems: launchItems, history: history)
     }
 
     /// Puts a page into the state a screenshot needs (`-PureMacDemoScene name`).
@@ -232,6 +218,7 @@ enum DemoContent {
             app.duplicates.reset()
         case "developer":
             app.developer.selection = Set(app.developer.regenerablePaths)
+            app.developer.selectedItemID = "sim.devices"
         default:
             break
         }

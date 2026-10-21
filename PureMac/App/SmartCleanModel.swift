@@ -102,11 +102,10 @@ final class SmartCleanModel {
     /// (whether PureMac asked them to quit or the user quit them).
     @ObservationIgnored private var reanalyzeWhenQuit: Set<String> = []
 
-    /// Politely asks the apps holding items back to quit (they may ask to save first), then
-    /// re-analyzes once they have, so their caches join the proposal.
-    func quitHeldBackApps() {
-        guard let apps = app?.apps else { return }
-        for target in heldBackApps { apps.requestQuit(target) }
+    /// Brings the apps holding items back to the front so the user can quit them; analysis
+    /// repeats by itself once they have, so their caches join the proposal.
+    func showHeldBackApps() {
+        app?.apps.bringToFront(heldBackApps)
     }
 
     /// Called when apps launch or quit.

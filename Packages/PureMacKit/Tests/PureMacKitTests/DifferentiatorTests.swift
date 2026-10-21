@@ -117,51 +117,41 @@ struct DeveloperAndDiagnosticsTests {
         #expect(!items.contains { $0.id == "pm.cargo" })   // absent locations are not listed
     }
 
-    @Test func parsesSimctlAndDockerOutput() {
-        let simctl = """
-        {"devices":{"com.apple.CoreSimulator.SimRuntime.iOS-18-0":[{"isAvailable":true,"name":"iPhone"}],
-        "com.apple.CoreSimulator.SimRuntime.iOS-16-0":[{"isAvailable":false,"name":"Old"},{"isAvailable":false,"name":"Old2"}]}}
-        """
-        let summary = DeveloperStorageInspector.parseSimulators(json: simctl)
-        #expect(summary?.totalDevices == 3)
-        #expect(summary?.unavailableDevices == 2)
-        let docker = """
-        {"Active":"1","Reclaimable":"1.2GB (40%)","Size":"3GB","TotalCount":"5","Type":"Images"}
-        {"Active":"0","Reclaimable":"0B","Size":"0B","TotalCount":"0","Type":"Local Volumes"}
-        """
-        let rows = DeveloperStorageInspector.parseDocker(docker)
-        #expect(rows.map(\.type) == ["Images", "Local Volumes"])
-        #expect(rows.first?.reclaimable == "1.2GB (40%)")
-    }
-
     @Test func toolRunnerOnlyRunsAllowListedAbsoluteExecutables() {
         #expect(!ToolRunner.isAllowed("/bin/sh"))
-        #expect(!ToolRunner.isAllowed("xcrun"))
+        #expect(!ToolRunner.isAllowed("pkgutil"))
         #expect(!ToolRunner.isAllowed("/usr/bin/../bin/sh"))
         #expect(!ToolRunner.isAllowed("/usr/bin/rm"))
-        #expect(ToolRunner.isAllowed("/usr/bin/xcrun"))
+        #expect(!ToolRunner.isAllowed("/usr/bin/xcrun"))   // simctl can't run in the App Sandbox
+        #expect(ToolRunner.isAllowed("/usr/sbin/pkgutil"))
         #expect(ToolRunner.run(executable: "/bin/rm", arguments: ["-rf", "/tmp/x"]) == nil)
     }
 
-    @Test func liveSnapshotUsesPublicAPIs() async {
+    @Test func liveSnapshotUsesPublicAPIs() async throws {
         let snapshot = SystemDiagnostics.snapshot()
         #expect(snapshot.memory?.physical ?? 0 > 0)
         #expect(snapshot.logicalCPUs > 0)
-        let top = await SystemDiagnostics.topProcesses(interval: 0.2, limit: 5)
-        #expect(top.count <= 5)
-        // The full list includes idle processes too (for ranking by memory), at least this one.
-        let all = await SystemDiagnostics.processUsage(interval: 0.2)
-        let me = all.first { $0.pid == ProcessInfo.processInfo.processIdentifier }
-        #expect((me?.residentBytes ?? 0) > 0)
-        #expect(all.count >= top.count)
+        // Whole-Mac processor time, which the App Sandbox allows (per-process sampling it hides).
+        let first = try #require(snapshot.cpuTicks)
+        try await Task.sleep(for: .milliseconds(200))
+        let second = try #require(SystemDiagnostics.snapshot().cpuTicks)
+        let busy = try #require(second.busyFraction(since: first))
+        #expect((0...1).contains(busy))
+    }
+
+    @Test func cpuBusyFractionComparesTwoReadings() {
+        let a = CPUTicks(busy: 100, total: 1_000)
+        #expect(CPUTicks(busy: 400, total: 2_000).busyFraction(since: a) == 0.3)
+        #expect(a.busyFraction(since: a) == nil)                                   // no time passed
+        #expect(CPUTicks(busy: 50, total: 2_000).busyFraction(since: a) == nil)    // counters reset
     }
 
     @Test func findingsCiteEvidenceAndNeverPromiseSpeedups() {
         var snapshot = SystemDiagnostics.snapshot()
         snapshot.pressure = .critical
         snapshot.thermalState = .serious
-        let findings = SystemDiagnostics.findings(for: snapshot, topProcesses: [ProcessUsage(pid: 1, name: "busy", cpuPercent: 150, residentBytes: 0)], brokenLaunchItems: 2)
-        #expect(findings.count >= 4)
+        let findings = SystemDiagnostics.findings(for: snapshot, brokenLaunchItems: 2)
+        #expect(findings.count >= 3)
         for finding in findings {
             #expect(!finding.evidence.isEmpty && !finding.expectedEffect.isEmpty)
             let text = (finding.title + finding.suggestion + finding.expectedEffect).lowercased()

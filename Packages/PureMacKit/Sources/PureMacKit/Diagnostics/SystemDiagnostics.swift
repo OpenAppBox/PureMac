@@ -44,12 +44,15 @@ public struct SystemSnapshot: Sendable, Hashable {
     public var loadAverage: (Double, Double, Double)
     public var logicalCPUs: Int
     public var startupVolume: VolumeInfo?
+    /// Processor time counters of the whole Mac; compare two snapshots with `CPUTicks.busyFraction`.
+    public var cpuTicks: CPUTicks?
 
     public static func == (lhs: SystemSnapshot, rhs: SystemSnapshot) -> Bool { lhs.takenAt == rhs.takenAt }
     public func hash(into hasher: inout Hasher) { hasher.combine(takenAt) }
 
     public init(takenAt: Date, memory: Memory?, pressure: PressureLevel, swapTotal: UInt64?, swapUsed: UInt64?,
-                thermalState: ProcessInfo.ThermalState, loadAverage: (Double, Double, Double), logicalCPUs: Int, startupVolume: VolumeInfo?) {
+                thermalState: ProcessInfo.ThermalState, loadAverage: (Double, Double, Double), logicalCPUs: Int, startupVolume: VolumeInfo?,
+                cpuTicks: CPUTicks? = nil) {
         self.takenAt = takenAt
         self.memory = memory
         self.pressure = pressure
@@ -59,22 +62,25 @@ public struct SystemSnapshot: Sendable, Hashable {
         self.loadAverage = loadAverage
         self.logicalCPUs = logicalCPUs
         self.startupVolume = startupVolume
+        self.cpuTicks = cpuTicks
     }
 }
 
-public struct ProcessUsage: Identifiable, Sendable, Hashable {
-    public var id: Int32 { pid }
-    public var pid: Int32
-    public var name: String
-    /// Percent of one CPU core over the sampling interval (can exceed 100 on multi-core).
-    public var cpuPercent: Double
-    public var residentBytes: UInt64
+/// Cumulative processor time of every core, in scheduler ticks, from the host statistics macOS
+/// keeps for the whole Mac. Unlike per-process sampling, this works inside the App Sandbox.
+public struct CPUTicks: Sendable, Hashable {
+    public var busy: UInt64
+    public var total: UInt64
 
-    public init(pid: Int32, name: String, cpuPercent: Double, residentBytes: UInt64) {
-        self.pid = pid
-        self.name = name
-        self.cpuPercent = cpuPercent
-        self.residentBytes = residentBytes
+    public init(busy: UInt64, total: UInt64) {
+        self.busy = busy
+        self.total = total
+    }
+
+    /// Share of processor time spent busy between `earlier` and `self` (0…1); `nil` when no time passed.
+    public func busyFraction(since earlier: CPUTicks) -> Double? {
+        guard total > earlier.total, busy >= earlier.busy else { return nil }
+        return min(1, Double(busy - earlier.busy) / Double(total - earlier.total))
     }
 }
 
@@ -110,7 +116,20 @@ public enum SystemDiagnostics {
             takenAt: Date(), memory: memory(), pressure: pressureLevel(), swapTotal: swap?.total, swapUsed: swap?.used,
             thermalState: ProcessInfo.processInfo.thermalState, loadAverage: (load[0], load[1], load[2]),
             logicalCPUs: ProcessInfo.processInfo.activeProcessorCount,
-            startupVolume: VolumeInspector.volume(containing: URL(fileURLWithPath: "/")))
+            startupVolume: VolumeInspector.volume(containing: URL(fileURLWithPath: "/")),
+            cpuTicks: cpuTicks())
+    }
+
+    public static func cpuTicks() -> CPUTicks? {
+        var info = host_cpu_load_info()
+        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info_data_t>.stride / MemoryLayout<integer_t>.stride)
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) { host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count) }
+        }
+        guard result == KERN_SUCCESS else { return nil }
+        let user = UInt64(info.cpu_ticks.0), system = UInt64(info.cpu_ticks.1)
+        let idle = UInt64(info.cpu_ticks.2), nice = UInt64(info.cpu_ticks.3)
+        return CPUTicks(busy: user + system + nice, total: user + system + idle + nice)
     }
 
     static func memory() -> SystemSnapshot.Memory? {
@@ -147,63 +166,8 @@ public enum SystemDiagnostics {
         return (usage.xsu_total, usage.xsu_used)
     }
 
-    /// Samples per-process CPU time twice and returns the busiest processes. Only processes the
-    /// current user may inspect are included (others return errors and are skipped).
-    public static func topProcesses(interval: TimeInterval = 1.0, limit: Int = 10) async -> [ProcessUsage] {
-        let all = await processUsage(interval: interval)
-        return Array(all.filter { $0.cpuPercent > 0.5 }.sorted { $0.cpuPercent > $1.cpuPercent }.prefix(limit))
-    }
-
-    /// Every process the current user may inspect, with its CPU use over `interval` (100% = one
-    /// core) and resident memory at the end of the interval.
-    public static func processUsage(interval: TimeInterval = 1.0) async -> [ProcessUsage] {
-        let first = cpuTimes()
-        let start = DispatchTime.now().uptimeNanoseconds
-        try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
-        let second = cpuTimes()
-        // The real gap, not the requested one: the sleep can run long (timer coalescing) or end early
-        // (cancellation), and a percentage over the wrong duration is wrong by the same factor.
-        let elapsed = Double(max(DispatchTime.now().uptimeNanoseconds - start, 1))
-        var timebase = mach_timebase_info_data_t()
-        mach_timebase_info(&timebase)
-        let toNanos = Double(timebase.numer) / Double(timebase.denom)
-        var usage: [ProcessUsage] = []
-        usage.reserveCapacity(second.count)
-        for (pid, sample) in second {
-            guard let before = first[pid], sample.cpu >= before.cpu else { continue }
-            let deltaNanos = Double(sample.cpu - before.cpu) * toNanos
-            let percent = deltaNanos / elapsed * 100
-            usage.append(ProcessUsage(pid: pid, name: processName(pid), cpuPercent: percent, residentBytes: sample.resident))
-        }
-        return usage
-    }
-
-    private static func cpuTimes() -> [Int32: (cpu: UInt64, resident: UInt64)] {
-        let capacity = Int(proc_listallpids(nil, 0)) + 64
-        guard capacity > 64 else { return [:] }
-        var pids = [Int32](repeating: 0, count: capacity)
-        let count = Int(pids.withUnsafeMutableBytes { proc_listallpids($0.baseAddress, Int32($0.count)) })
-        var result: [Int32: (UInt64, UInt64)] = [:]
-        for pid in pids.prefix(max(0, count)) where pid > 0 {
-            var info = rusage_info_v4()
-            let rc = withUnsafeMutablePointer(to: &info) {
-                $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(pid, RUSAGE_INFO_V4, $0) }
-            }
-            guard rc == 0 else { continue }
-            result[pid] = (info.ri_user_time + info.ri_system_time, info.ri_resident_size)
-        }
-        return result
-    }
-
-    private static func processName(_ pid: Int32) -> String {
-        var buffer = [CChar](repeating: 0, count: 1024)
-        let length = proc_name(pid, &buffer, UInt32(buffer.count))
-        guard length > 0 else { return "Process \(pid)" }
-        return String(decoding: buffer.prefix(Int(length)).map { UInt8(bitPattern: $0) }, as: UTF8.self)
-    }
-
     /// Evidence-based findings. Never suggests "freeing RAM", killing processes or speed-up percentages.
-    public static func findings(for snapshot: SystemSnapshot, topProcesses: [ProcessUsage], brokenLaunchItems: Int) -> [DiagnosticFinding] {
+    public static func findings(for snapshot: SystemSnapshot, brokenLaunchItems: Int) -> [DiagnosticFinding] {
         var findings: [DiagnosticFinding] = []
         if let volume = snapshot.startupVolume, let total = volume.totalCapacity, let free = volume.availableForImportantUsage ?? volume.availableCapacity, total > 0 {
             let fraction = Double(free) / Double(total)
@@ -223,7 +187,7 @@ public enum SystemDiagnostics {
                 evidence: snapshot.swapUsed.map { swap in
                     String(localized: "macOS reports memory pressure level \(snapshot.pressure.rawValue), with \(ByteCountFormatter.string(fromByteCount: Int64(swap), countStyle: .memory)) of swap in use.", bundle: .module)
                 } ?? String(localized: "macOS reports memory pressure level \(snapshot.pressure.rawValue).", bundle: .module),
-                suggestion: String(localized: "Quit apps or browser tabs you are not using. Check the processes list below for unexpected memory use.", bundle: .module),
+                suggestion: String(localized: "Quit apps or browser tabs you are not using. Activity Monitor shows which ones use the most memory.", bundle: .module),
                 expectedEffect: String(localized: "Lower pressure reduces swapping and compression, which can make apps more responsive. PureMac does not and cannot “free RAM”.", bundle: .module)))
         default: break
         }
@@ -235,14 +199,6 @@ public enum SystemDiagnostics {
                     : String(localized: "macOS reports the thermal state as serious.", bundle: .module),
                 suggestion: String(localized: "Check for processes with sustained high CPU, improve ventilation, and avoid soft surfaces.", bundle: .module),
                 expectedEffect: String(localized: "macOS reduces performance while hot; cooling restores it.", bundle: .module)))
-        }
-        let sustained = topProcesses.filter { $0.cpuPercent >= 80 }
-        if !sustained.isEmpty {
-            findings.append(DiagnosticFinding(
-                id: "cpu.hot", severity: .attention, title: String(localized: "\(sustained.count) process(es) are using a lot of CPU", bundle: .module),
-                evidence: String(localized: "\(sustained.map { "\($0.name) \(($0.cpuPercent / 100).formatted(.percent.precision(.fractionLength(0))))" }.formatted(.list(type: .and))) in the latest sample.", bundle: .module),
-                suggestion: String(localized: "If this persists and you don’t expect it, quit that app normally or check it in Activity Monitor.", bundle: .module),
-                expectedEffect: String(localized: "Less CPU load can reduce heat, fan noise and battery drain. A single sample can catch normal short bursts.", bundle: .module)))
         }
         if brokenLaunchItems > 0 {
             findings.append(DiagnosticFinding(

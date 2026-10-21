@@ -11,7 +11,7 @@ bug, suggesting an idea or improving a translation matters just as much.
   mind — it helps us find the best way to build it.
 - **🧹 Point out a cache we miss.** Know a folder that an app always rebuilds by itself? Suggest it
   as a Smart Clean rule, with a link to where its developer documents it.
-- **🌍 Improve a translation.** PureMac speaks 18 languages. If something reads oddly in yours,
+- **🌍 Improve a translation.** PureMac speaks 23 languages. If something reads oddly in yours,
   tell us or send a fix.
 - **🛠️ Contribute code.** See below.
 
@@ -47,7 +47,7 @@ open PureMac.xcodeproj
 - Run every test with `Scripts/test.sh`. Pull requests need it to pass.
 - Tests that remove files work only inside temporary folders and never touch your real home folder
   or Trash. Please keep it that way in new tests.
-- **New or changed text** needs to be in the string catalogs for all 18 languages; the localization
+- **New or changed text** needs to be in the string catalogs for all 23 languages; the localization
   tests tell you what's missing. If you can't translate, say so in your pull request and we'll help.
 - **New Smart Clean rules** need a narrow, documented location, an honest explanation of what
   happens after removal, and tests proving they don't match anything else.

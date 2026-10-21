@@ -16,6 +16,8 @@ body:
         - Finnish
         - French
         - German
+        - Hindi
+        - Indonesian
         - Italian
         - Japanese
         - Korean
@@ -23,8 +25,11 @@ body:
         - Polish
         - Portuguese (Brazil)
         - Russian
+        - Spanish
         - Swedish
+        - Thai
         - Turkish
+        - Vietnamese
     validations:
       required: true
   - type: input

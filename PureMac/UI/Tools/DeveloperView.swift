@@ -4,7 +4,6 @@ import SwiftUI
 struct DeveloperView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.byteStyle) private var byteStyle
-    @State private var confirmSimctl = false
     @State private var hoveredGroup: RingSegment.ID?
 
     private var hue: Color { SidebarItem.developer.hue }
@@ -39,7 +38,7 @@ struct DeveloperView: View {
                     locationList.frame(width: 380).frame(maxHeight: .infinity)
                     Group {
                         if let item = model.selectedItem {
-                            DeveloperItemDetail(item: item, confirmSimctl: { confirmSimctl = true }).id(item.id)
+                            DeveloperItemDetail(item: item).id(item.id)
                                 .transition(.opacity.combined(with: .offset(x: 12)))
                         } else {
                             GlassCard(padding: 40) {
@@ -62,11 +61,6 @@ struct DeveloperView: View {
         .navigationTitle("Developer Storage")
         // Measuring only reads sizes, so do it on the first visit instead of asking for a click.
         .task { if model.loadedAt == nil && !model.isLoading { await model.load() } }
-        .confirmationDialog("Delete unavailable simulators?", isPresented: $confirmSimctl) {
-            Button("Delete with simctl", role: .destructive) { model.deleteUnavailableSimulators() }
-        } message: {
-            Text("Runs Xcode’s `xcrun simctl delete unavailable`. It removes only simulators whose runtime is no longer installed. This is permanent — the devices do not go to the Trash.")
-        }
     }
 
     private var devSubtitle: String {
@@ -127,9 +121,6 @@ struct DeveloperView: View {
                         .buttonStyle(.glow(hue, prominent: false))
                         .disabled(regenerable.isEmpty || regenerable.allSatisfy(model.selection.contains))
                         .help("Low-risk package caches that tools download again when needed. Xcode data, archives, simulators and projects are never included.")
-                    if let message = model.toolMessage {
-                        Text(message).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                    }
                 }
                 .frame(width: 190, alignment: .leading)
             }
@@ -229,7 +220,6 @@ private struct DeveloperItemDetail: View {
     @Environment(AppModel.self) private var app
     @Environment(\.byteStyle) private var byteStyle
     let item: DeveloperItem
-    let confirmSimctl: () -> Void
     @State private var sort: ChildSort = .size
 
     enum ChildSort: String, CaseIterable, Identifiable {
@@ -259,8 +249,7 @@ private struct DeveloperItemDetail: View {
                         NoticeView(tone: .info, title: LocalizedStringKey(reason))
                     }
                     if let hint = item.toolCommandHint { CommandBox(command: hint) }
-                    if item.id == "sim.devices" { SimulatorPanel(confirm: confirmSimctl) }
-                    if item.group == .containers { DockerPanel() }
+                    if item.id == "sim.devices" { SimulatorPanel() }
                     switch item.handling {
                     case .selectItem: wholeFolder(state: state)
                     case .selectChildren: children
@@ -446,21 +435,29 @@ private struct CommandBox: View {
 
 private struct SimulatorPanel: View {
     @Environment(AppModel.self) private var app
-    let confirm: () -> Void
 
     var body: some View {
         let model = app.developer
-        if !model.toolsAvailable {
-            NoticeView(tone: .info, title: "Simulators are managed by Xcode’s tools",
-                       message: "The App Store version of PureMac isn’t allowed to run them. Use Xcode → Settings → Platforms, or `xcrun simctl delete unavailable`.")
-        } else if let sims = model.simulators {
+        if let sims = model.simulators {
             HStack(alignment: .center, spacing: 18) {
-                GaugeRing(fraction: Double(sims.unavailableDevices) / Double(max(sims.totalDevices, 1)), color: Theme.warning,
-                          label: "\(sims.unavailableDevices)", caption: String(localized: "unavailable"))
-                    .frame(width: 92, height: 92)
+                if sims.availabilityKnown {
+                    GaugeRing(fraction: Double(sims.unavailableDevices) / Double(max(sims.totalDevices, 1)), color: Theme.warning,
+                              label: "\(sims.unavailableDevices)", caption: String(localized: "unavailable"))
+                        .frame(width: 92, height: 92)
+                } else {
+                    GaugeRing(fraction: 1, color: SidebarItem.developer.hue,
+                              label: "\(sims.totalDevices)", caption: String(localized: "devices"))
+                        .frame(width: 92, height: 92)
+                }
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("\(sims.totalDevices) simulator devices, \(sims.unavailableDevices) unavailable").fontWeight(.medium)
-                    Text("Unavailable devices belong to runtimes that are no longer installed.").font(.caption).foregroundStyle(.secondary)
+                    if sims.availabilityKnown {
+                        Text("\(sims.totalDevices) simulator devices, \(sims.unavailableDevices) unavailable").fontWeight(.medium)
+                        Text("Unavailable devices belong to runtimes that are no longer installed.").font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text("\(sims.totalDevices) simulator devices").fontWeight(.medium)
+                        Text("PureMac can’t see which simulator runtimes are installed, so it can’t tell which devices are unavailable.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     if !sims.runtimes.isEmpty {
                         FlowLayout(spacing: 6, rowSpacing: 6) {
                             ForEach(sims.runtimes, id: \.self) { runtime in
@@ -470,17 +467,13 @@ private struct SimulatorPanel: View {
                             }
                         }
                     }
-                    Button("Delete Unavailable Simulators…", action: confirm)
-                        .buttonStyle(.glow(SidebarItem.developer.hue))
-                        .disabled(sims.unavailableDevices == 0 || model.isRunningTool)
-                        .padding(.top, 2)
+                    Text("To delete simulators, use Xcode → Window → Devices and Simulators, or run `xcrun simctl delete unavailable` in Terminal.")
+                        .font(.caption).foregroundStyle(.secondary).padding(.top, 2)
                 }
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.track.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        } else {
-            NoticeView(tone: .info, title: "Xcode command-line tools are not available, so simulators cannot be listed.")
         }
     }
 
@@ -489,58 +482,6 @@ private struct SimulatorPanel: View {
         let parts = identifier.split(separator: "-")
         guard parts.count > 1 else { return identifier }
         return parts[0] + " " + parts.dropFirst().joined(separator: ".")
-    }
-}
-
-private struct DockerPanel: View {
-    @Environment(AppModel.self) private var app
-
-    var body: some View {
-        let model = app.developer
-        if !model.toolsAvailable {
-            NoticeView(tone: .info, title: "Docker reports its own disk use",
-                       message: "The App Store version of PureMac isn’t allowed to run Docker’s tools. See Docker Desktop → Settings → Resources, or `docker system df`.")
-        } else if let docker = model.docker {
-            if docker.daemonRunning {
-                let largest = max(docker.rows.compactMap(\.sizeBytes).max() ?? 1, 1)
-                let tint = DeveloperItem.Group.containers.tint
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Eyebrow(text: "Reported by Docker")
-                        Spacer()
-                        LegendChip(color: Theme.neutralB, label: String(localized: "In use"))
-                        LegendChip(color: tint, label: String(localized: "Reclaimable"))
-                    }
-                    ForEach(docker.rows) { row in
-                        let size = Double(row.sizeBytes ?? 0) / Double(largest)
-                        let reclaimable = Double(row.reclaimableBytes ?? 0) / Double(largest)
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(row.type).fontWeight(.medium)
-                                Text("\(row.total) · \(row.active) active").font(.caption).foregroundStyle(.secondary)
-                                Spacer()
-                                Text(row.size).monospacedDigit()
-                                Text("\(row.reclaimable) reclaimable").font(.caption).foregroundStyle(.secondary).monospacedDigit()
-                            }
-                            .font(.callout)
-                            ZStack(alignment: .leading) {
-                                MeterBar(fraction: size, color: Theme.neutralB, height: 6)
-                                Capsule().fill(tint)
-                                    .frame(height: 6)
-                                    .scaleEffect(x: max(0.012, min(1, reclaimable)), y: 1, anchor: .leading)
-                            }
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                    Text("Inspect only. Remove specific images or volumes in Docker Desktop or with `docker image rm` / `docker volume rm`. PureMac never runs prune commands.")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .padding(12)
-                .background(Theme.track.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            } else {
-                NoticeView(tone: .info, title: LocalizedStringKey(docker.message ?? String(localized: "Docker is unavailable.")))
-            }
-        }
     }
 }
 

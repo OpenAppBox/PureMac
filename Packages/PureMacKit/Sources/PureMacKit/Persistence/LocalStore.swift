@@ -330,6 +330,9 @@ public actor LocalStore {
                 try mark.run(.int(id))
             }
         }
+        // Pruning frees a whole scan's rows: hand the log's space back now (best effort — a scan
+        // still writing simply keeps it until a later checkpoint).
+        try? db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     }
 
     /// Deletes every scan session, index row, issue and trend summary.

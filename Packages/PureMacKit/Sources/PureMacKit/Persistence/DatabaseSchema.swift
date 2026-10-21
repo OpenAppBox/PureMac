@@ -201,5 +201,11 @@ public enum DatabaseSchema {
         try db.execute("PRAGMA journal_mode = WAL")
         try db.execute(durability == .full ? "PRAGMA synchronous = FULL" : "PRAGMA synchronous = NORMAL")
         try db.execute("PRAGMA temp_store = MEMORY")
+        // Without a limit the write-ahead log keeps the size of the largest scan ever written
+        // (hundreds of MB after a whole-disk scan); with it, checkpoints trim the file back.
+        try db.execute("PRAGMA journal_size_limit = \(walSizeLimit)")
     }
+
+    /// Largest size the write-ahead log keeps on disk between checkpoints.
+    static let walSizeLimit = 32 * 1024 * 1024
 }

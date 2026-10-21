@@ -65,4 +65,17 @@ check_summaries "$LOGS/xcodebuild.log" "xcodebuild test"
 check_output_for_misuse "$LOGS/xcodebuild.log" "xcodebuild test"
 check_unified_log_for_misuse "$since" "xcodebuild test"
 
+# StoreKit's test environment only works in a signed app, so the subscription tests (skipped
+# above) run once more, signed with the project's development team, when a certificate exists.
+echo "==> xcodebuild test, signed (subscription tests with the local StoreKit configuration)"
+if security find-identity -v -p codesigning 2>/dev/null | grep -q "Apple Development"; then
+  xcodebuild -project PureMac.xcodeproj -scheme PureMac -destination 'platform=macOS' \
+    -derivedDataPath "$DERIVED-signed" -only-testing:PureMacTests/SubscriptionTests test 2>&1 | tee "$LOGS/storekit.log"
+  grep -q '\*\* TEST SUCCEEDED \*\*' "$LOGS/storekit.log" || fail "the signed subscription tests did not succeed"
+  if grep -Eq 'Test [A-Za-z0-9_]+\(\) skipped' "$LOGS/storekit.log"; then fail "subscription tests were skipped in the signed run"; fi
+  check_summaries "$LOGS/storekit.log" "signed subscription tests"
+else
+  echo "    (no Apple Development certificate: skipped; run them with ⌘U in Xcode)"
+fi
+
 echo "==> All tests passed; no SQLite misuse was logged."

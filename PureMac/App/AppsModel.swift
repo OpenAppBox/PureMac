@@ -270,12 +270,12 @@ final class AppsModel {
     }
     #endif
 
-    /// The App Sandbox doesn't let PureMac ask other apps to quit (App Store edition).
-    let canQuitApps = !PathTools.isSandboxed
-
-    func requestQuit(_ installed: InstalledApp) {
-        guard canQuitApps else { return }
-        _ = AppTermination.requestQuit(bundleIdentifiers: installed.allBundleIdentifiers, bundlePath: installed.path)
+    /// Brings running apps to the front so the user can quit them. The App Sandbox doesn't let
+    /// PureMac ask other apps to quit, and PureMac never force-quits.
+    func bringToFront(_ targets: [InstalledApp]) {
+        for installed in targets {
+            _ = AppActivation.bringToFront(bundleIdentifiers: installed.allBundleIdentifiers, bundlePath: installed.path)
+        }
     }
 
     func findOrphans() async {

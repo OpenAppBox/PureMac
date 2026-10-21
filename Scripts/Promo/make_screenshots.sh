@@ -10,7 +10,8 @@
 #   <out>/<lang>/NN-name.png          the window on a branded background (website / store)
 # Window size is 1440×900 points: 1440×900 px on a standard display, 2880×1800 px on Retina.
 # PureMac windows open in front while this runs (about 15 seconds per scene).
-# ONLY=applications limits the run to scenes whose name contains that text.
+# ONLY=applications limits the run to scenes whose name matches that text (a regular expression,
+# e.g. ONLY='^(01|03)-').
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 OUT="${1:?usage: make_screenshots.sh <output-folder> [languages…]}"
@@ -53,7 +54,8 @@ locale_for() {
     tr) echo tr_TR ;; de) echo de_DE ;; fr) echo fr_FR ;; it) echo it_IT ;; pt-BR) echo pt_BR ;;
     nl) echo nl_NL ;; sv) echo sv_SE ;; nb) echo nb_NO ;; da) echo da_DK ;; fi) echo fi_FI ;;
     ru) echo ru_RU ;; pl) echo pl_PL ;; ja) echo ja_JP ;; ko) echo ko_KR ;; zh-Hans) echo zh_CN ;;
-    zh-Hant) echo zh_TW ;; ar) echo ar_SA ;; *) echo en_US ;;
+    zh-Hant) echo zh_TW ;; ar) echo ar_SA ;; es) echo es_ES ;; hi) echo hi_IN ;; vi) echo vi_VN ;;
+    th) echo th_TH ;; id) echo id_ID ;; *) echo en_US ;;
   esac
 }
 
@@ -61,7 +63,7 @@ for lang in "${LANGS[@]}"; do
   mkdir -p "$OUT/$lang/window"
   for entry in "${SCENES[@]}"; do
     IFS='|' read -r name section scene appearance extra <<< "$entry"
-    [[ -n "${ONLY:-}" && "$name" != *"$ONLY"* ]] && continue
+    [[ -n "${ONLY:-}" && ! "$name" =~ $ONLY ]] && continue
     args=(-PureMacDemo YES -PureMacInitialSection "$section" -PureMacWindowSize 1440x900 -appearance "$appearance" -AppleLanguages "($lang)" -AppleLocale "$(locale_for "$lang")" -ApplePersistenceIgnoreState YES)
     [[ -n "$scene" ]] && args+=(-PureMacDemoScene "$scene")
     # shellcheck disable=SC2206

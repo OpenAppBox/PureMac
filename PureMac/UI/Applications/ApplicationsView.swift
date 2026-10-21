@@ -136,7 +136,7 @@ struct ApplicationsView: View {
     private func uninstall(_ chosen: [InstalledApp]) {
         let removable = chosen.filter { !$0.isProtected }
         guard !removable.isEmpty, !preparingUninstall else { return }
-        // App Store edition: moving an app needs a grant for the folder that holds it.
+        // In the App Sandbox, moving an app needs a grant for the folder that holds it.
         for folder in Set(removable.map { ($0.path as NSString).deletingLastPathComponent }) where !app.access.hasAccess(to: folder) {
             let name = FileManager.default.displayName(atPath: folder)
             guard app.access.request(folder, message: String(localized: "To move apps to the Trash, PureMac needs access to “\(name)”. Choose it and click Allow Access.")) else { return }
@@ -227,7 +227,7 @@ private struct AppListRow: View {
         .padding(.vertical, 3)
         .contextMenu {
             Button("Reveal in Finder") { SystemActions.revealInFinder([app.path]) }
-            if isRunning, model.apps.canQuitApps { Button("Quit \(app.name)") { model.apps.requestQuit(app) } }
+            if isRunning { Button("Show \(app.name)") { model.apps.bringToFront([app]) } }
         }
     }
 
@@ -264,7 +264,7 @@ struct AppDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 hero(associations: associations)
                 if app.apps.isRunning(installed) {
-                    NoticeView(tone: .info, title: "\(installed.name) is running", message: app.apps.canQuitApps ? "Quit it before removing it or its data. PureMac never force-quits apps." : "Quit it before removing it or its data.")
+                    NoticeView(tone: .info, title: "\(installed.name) is running", message: "Quit it before removing it or its data.")
                 }
                 if let reason = installed.protectionReason {
                     NoticeView(tone: .info, title: "Protected", message: LocalizedStringKey(reason + " " + String(localized: "PureMac shows its data for information only.")))
@@ -319,8 +319,10 @@ struct AppDetailView: View {
                             Text("Last opened \(used.formatted(date: .abbreviated, time: .omitted))").font(.caption).foregroundStyle(.secondary)
                         }
                         HStack {
-                            if app.apps.isRunning(installed), app.apps.canQuitApps {
-                                Button("Quit") { app.apps.requestQuit(installed) }.buttonStyle(.glow(.secondary, prominent: false))
+                            if app.apps.isRunning(installed) {
+                                Button("Show \(installed.name)") { app.apps.bringToFront([installed]) }
+                                    .buttonStyle(.glow(.secondary, prominent: false))
+                                    .help("Brings \(installed.name) to the front so you can quit it (⌘Q).")
                             }
                             Button(action: onUninstall) { Label("Uninstall…", systemImage: "trash") }
                                 .buttonStyle(.glow(Theme.critical, prominent: false))

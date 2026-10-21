@@ -19,7 +19,7 @@ public enum PathTools {
 
     public static var userHomeURL: URL { URL(fileURLWithPath: userHome, isDirectory: true) }
 
-    /// `true` when the process runs in the App Sandbox (the Mac App Store edition).
+    /// `true` when the process runs in the App Sandbox (every signed build; unsigned test builds run without it).
     public static let isSandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
 
     /// Normalizes an absolute path: rejects relative paths, NUL bytes, empty components produced by

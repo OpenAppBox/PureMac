@@ -51,8 +51,21 @@ struct RootView: View {
     @State private var showOnboarding = false
     /// Screens already shown this session (their intro animations don't replay).
     @State private var visited: Set<SidebarItem> = []
+    /// The launch work below runs once per window, not again after the subscribe screen.
+    @State private var launched = false
 
     var body: some View {
+        // App Store copies: the subscribe screen until StoreKit confirms the subscription.
+        // Onboarding, folder access and everything else come after it. A cleanup that is moving
+        // files when a subscription lapses finishes on screen first.
+        if app.subscription.isLocked && !app.cleanup.isRunning {
+            SubscribeView()
+        } else {
+            mainWindow
+        }
+    }
+
+    private var mainWindow: some View {
         NavigationSplitView {
             Sidebar(selection: $selection)
                 .navigationSplitViewColumnWidth(min: 220, ideal: 240)
@@ -87,6 +100,8 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .task {
+            guard !launched else { return }
+            launched = true
             #if DEBUG
             // Development aid: `-PureMacInitialSection orphans` opens a section at launch.
             if let item = DevelopmentHooks.initialSection {

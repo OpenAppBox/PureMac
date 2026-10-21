@@ -258,6 +258,10 @@ struct ScannerTests {
         #expect(try await store.roots(sessionID: ids[0]).isEmpty)
         #expect(try await store.session(id: ids[2])?.hasIndex == true)
         #expect(try await store.growth(path: f.path).count == 3)
+        // The write-ahead log is handed back after pruning.
+        let wal = (try? FileManager.default.attributesOfItem(atPath: dbURL.path + "-wal")[.size] as? Int) ?? 0
+        #expect(wal <= DatabaseSchema.walSizeLimit)
+        #expect(wal == 0)
     }
 }
 

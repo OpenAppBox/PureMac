@@ -1,7 +1,7 @@
 import PureMacKit
 import SwiftUI
 
-/// App Store edition: macOS only lets a sandboxed app see folders the user chooses. Shown in place
+/// macOS only lets a sandboxed app see folders the user chooses. Shown in place
 /// of every page until the home folder is granted, so no feature quietly finds nothing.
 struct AccessGateView: View {
     @Environment(AppModel.self) private var app

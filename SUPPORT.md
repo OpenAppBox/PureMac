@@ -38,7 +38,7 @@ macOS protects some folders, such as Mail and Safari. Allow PureMac under **Syst
 Items in the Trash still use space until you empty it. PureMac never empties the Trash for you.
 
 **An app's caches were "held back".**
-The app is running. Quit it — or use *Quit & Include* in Smart Clean — and PureMac includes them.
+The app is running. Quit it (in Smart Clean, *Show* brings it to the front) and PureMac includes them by itself.
 
 **I want something back.**
 Open **History** in PureMac and choose *Put Back*, or open the Trash in Finder and choose

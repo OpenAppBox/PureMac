@@ -75,7 +75,7 @@ final class AppSettings {
     /// volume (which contains it) is chosen.
     var scanRoots: [ScanRoot] {
         var roots: [ScanRoot] = []
-        if scanEntireDataVolume && !PathTools.isSandboxed {
+        if scanEntireDataVolume {
             roots.append(ScanRoot(path: "/System/Volumes/Data", kind: .dataVolume))
         } else {
             roots.append(.home())

@@ -28,7 +28,7 @@ struct PureMacApp: App {
             CommandMenu("Scan") {
                 Button("Scan Now") { app.scan.start() }
                     .keyboardShortcut("r", modifiers: [.command])
-                    .disabled(app.scan.isBusy || app.store == nil)
+                    .disabled(app.scan.isBusy || app.store == nil || app.subscription.isLocked)
                 Button("Cancel Scan") { app.scan.cancel() }
                     .keyboardShortcut(".", modifiers: [.command])
                     .disabled(app.scan.phase != .scanning)

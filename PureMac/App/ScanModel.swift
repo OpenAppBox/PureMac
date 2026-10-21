@@ -55,7 +55,7 @@ final class ScanModel {
 
     /// Switches the scan scope (remembered in Settings) and starts a scan.
     func start(entireDisk: Bool) {
-        guard let app, !app.access.isRequired || !entireDisk else { return }
+        guard let app else { return }
         app.settings.scanEntireDataVolume = entireDisk
         start()
     }
@@ -65,10 +65,19 @@ final class ScanModel {
     func start() {
         guard phase == .idle, let app, app.store != nil else { return }
         let roots = app.settings.scanRoots
-        // App Store edition: every root needs a folder grant (asked once, remembered).
+        // In the App Sandbox every root needs a folder grant (asked once, remembered). A whole-disk
+        // scan needs the startup disk itself, picked at the top of the Open panel.
         for root in roots where !app.access.hasAccess(to: root.path) {
-            let name = FileManager.default.displayName(atPath: root.path)
-            guard app.access.request(root.path, message: String(localized: "Choose “\(name)” so PureMac can measure it. Only names, sizes and dates are read.")) else {
+            let granted: Bool
+            let name: String
+            if root.kind == .dataVolume {
+                name = startupDiskName
+                granted = app.access.request("/", message: String(localized: "To scan the entire disk, choose “\(name)” and click Allow Access. Only names, sizes and dates are read."))
+            } else {
+                name = FileManager.default.displayName(atPath: root.path)
+                granted = app.access.request(root.path, message: String(localized: "Choose “\(name)” so PureMac can measure it. Only names, sizes and dates are read."))
+            }
+            guard granted else {
                 errorMessage = String(localized: "PureMac can’t scan “\(name)” without access to it.")
                 return
             }

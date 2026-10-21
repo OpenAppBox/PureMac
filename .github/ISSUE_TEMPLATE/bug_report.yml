@@ -73,7 +73,6 @@ body:
       label: How did you get PureMac?
       options:
         - Mac App Store
-        - Direct download
         - Built it myself
   - type: textarea
     id: screenshots

@@ -11,7 +11,7 @@ public enum ToolRunner {
     }
 
     /// Executables PureMac is allowed to launch. Anything else is refused.
-    static let allowedExecutableNames: Set<String> = ["pkgutil", "xcrun", "simctl", "brew", "docker", "npm", "du"]
+    static let allowedExecutableNames: Set<String> = ["pkgutil"]
 
     public static func isAllowed(_ executable: String) -> Bool {
         guard let normalized = PathTools.normalize(executable), normalized == executable else { return false }

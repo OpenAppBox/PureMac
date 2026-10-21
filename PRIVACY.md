@@ -22,8 +22,8 @@ To show your storage and your cleanup history, PureMac keeps a small database **
 | Your cleanup history | So you can see what was moved and put items back |
 | Your settings | Language, appearance and scan choices |
 
-Location: `~/Library/Application Support/com.openappbox.PureMac/` (the Mac App Store version keeps
-it inside its own app container). You can delete scans and history anytime in **Settings → Privacy
+Location: PureMac's own app container,
+`~/Library/Containers/com.openappbox.PureMac/Data/Library/Application Support/com.openappbox.PureMac/`. You can delete scans and history anytime in **Settings → Privacy
 & Data**, or turn off detailed history so file paths aren't recorded at all.
 
 ## The one link that opens a browser

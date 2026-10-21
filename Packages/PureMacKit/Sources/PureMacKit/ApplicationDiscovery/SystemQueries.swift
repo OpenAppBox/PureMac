@@ -41,19 +41,22 @@ public struct WorkspaceLaunchServices: LaunchServicesQuerying {
     }
 }
 
-/// Politely asks a running application to quit (the user can still cancel in the app). Never force-quits.
-public enum AppTermination {
+/// Running apps PureMac must not touch can still be shown to the user: the App Sandbox doesn't let
+/// an app ask others to quit, and PureMac never force-quits.
+public enum AppActivation {
+    /// Brings the matching running apps to the front so the user can quit them (⌘Q). Returns how
+    /// many were brought forward.
     @MainActor
-    public static func requestQuit(bundleIdentifiers: Set<String>, bundlePath: String) -> Int {
-        var asked = 0
+    public static func bringToFront(bundleIdentifiers: Set<String>, bundlePath: String) -> Int {
+        var shown = 0
         for app in NSWorkspace.shared.runningApplications {
             let matchesID = app.bundleIdentifier.map { bundleIdentifiers.contains($0.lowercased()) } ?? false
             let matchesPath = app.bundleURL?.standardizedFileURL.path == bundlePath
-            if matchesID || matchesPath {
-                if app.terminate() { asked += 1 }
-            }
+            guard matchesID || matchesPath, app.activationPolicy == .regular else { continue }
+            NSApp.yieldActivation(to: app)
+            if app.activate(from: .current, options: []) { shown += 1 }
         }
-        return asked
+        return shown
     }
 }
 

@@ -65,15 +65,6 @@ struct Review013Tests {
         #expect(reports.value < 50, "\(reports.value) progress reports for 300 files")
         #expect(reports.value >= 1, "the final count is always reported")
     }
-
-    // CPU percentages divided by the requested interval, not the time that actually passed.
-    @Test func processUsageUsesMeasuredTime() async {
-        let all = await SystemDiagnostics.processUsage(interval: 0.2)
-        #expect(!all.isEmpty)
-        // No process can use more than every core for the whole measured interval.
-        let cores = Double(ProcessInfo.processInfo.activeProcessorCount)
-        #expect(all.allSatisfy { $0.cpuPercent <= cores * 100 + 1 })
-    }
 }
 
 private final class Counter: @unchecked Sendable {

@@ -38,7 +38,6 @@ struct PerformanceView: View {
                     systemCard(snapshot)
                 }
                 .entrance(0.1)
-                if model.processSamplingAvailable { ProcessesCard().entrance(0.14) }
                 LaunchItemsCard(navigate: navigate).entrance(0.18)
             } else {
                 HeroState(item: .performance, title: "Sampling your Mac…", message: "Reading memory, CPU, thermal and disk measurements from macOS.", busy: true) { EmptyView() }
@@ -321,7 +320,6 @@ private struct HealthChecks: View {
         let byID = Dictionary(model.findings.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         let disk = PerformanceModel.diskFree(snapshot)
         let free = snapshot.startupVolume.flatMap { $0.availableForImportantUsage ?? $0.availableCapacity } ?? 0
-        let busy = model.topCPU.filter { $0.cpuPercent >= 80 && $0.pid != ProcessInfo.processInfo.processIdentifier }
         let broken = model.launchItems.filter { !$0.programExists }.count
         return [
             Check(id: "disk", title: String(localized: "Free disk space"), symbol: "internaldrive",
@@ -332,11 +330,6 @@ private struct HealthChecks: View {
             Check(id: "thermal", title: String(localized: "Temperature"), symbol: "thermometer.medium",
                   measurement: snapshot.thermalState == .nominal ? String(localized: "No throttling") : String(localized: "Throttling"),
                   finding: byID["thermal"]),
-            Check(id: "cpu", title: String(localized: "Runaway processes"), symbol: "cpu",
-                  measurement: model.processSamplingAvailable
-                      ? (busy.isEmpty ? String(localized: "None above 80% CPU") : busy.map(\.name).joined(separator: ", "))
-                      : String(localized: "Not available in the App Store version"),
-                  finding: byID["cpu.hot"]),
             Check(id: "launch", title: String(localized: "Background jobs"), symbol: "power",
                   measurement: broken == 0 ? String(localized: "All \(model.launchItems.count) point to existing programs") : String(localized: "\(broken) of \(model.launchItems.count) point to missing programs"),
                   finding: byID["launch.broken"]),
@@ -357,7 +350,7 @@ private struct HealthChecks: View {
                 }
                 .buttonStyle(.glow(.secondary, prominent: false))
             })
-        case "memory.pressure", "cpu.hot", "thermal":
+        case "memory.pressure", "thermal":
             return AnyView(Button("Open Activity Monitor") { SystemActions.openActivityMonitor() }
                 .buttonStyle(.glow(.secondary, prominent: false)))
         case "launch.broken":
@@ -434,81 +427,6 @@ private struct CheckRow: View {
             }
         }
         .animation(.easeOut(duration: 0.18), value: isOpen)
-    }
-}
-
-// MARK: - Processes
-
-private struct ProcessesCard: View {
-    @Environment(AppModel.self) private var app
-    @State private var ranking: Ranking = .cpu
-
-    enum Ranking: String, CaseIterable, Identifiable {
-        case cpu, memory
-        var id: String { rawValue }
-    }
-
-    var body: some View {
-        let model = app.performance
-        let rows = ranking == .cpu ? model.topCPU : model.topMemory
-        let largest = ranking == .cpu ? max(rows.map(\.cpuPercent).max() ?? 1, 1) : Double(max(rows.map(\.residentBytes).max() ?? 1, 1))
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    CardTitle(title: "Busiest Processes", systemImage: "chart.bar")
-                    Spacer()
-                    Picker("Rank by", selection: $ranking) {
-                        Text("CPU").tag(Ranking.cpu)
-                        Text("Memory").tag(Ranking.memory)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    Button("Activity Monitor") { SystemActions.openActivityMonitor() }
-                        .buttonStyle(.glow(.secondary, prominent: false))
-                }
-                if rows.isEmpty {
-                    Text("No process used noticeable CPU during the sample.").foregroundStyle(.secondary)
-                }
-                VStack(spacing: 2) {
-                    ForEach(rows) { process in
-                        let info = model.appInfo[process.pid]
-                        let fraction = ranking == .cpu ? process.cpuPercent / largest : Double(process.residentBytes) / largest
-                        HStack(spacing: 10) {
-                            Group {
-                                if let icon = info?.icon {
-                                    Image(nsImage: icon).resizable()
-                                } else {
-                                    Image(systemName: "gearshape.fill").resizable().scaledToFit().padding(3).foregroundStyle(.secondary)
-                                }
-                            }
-                            .frame(width: 20, height: 20)
-                            .accessibilityHidden(true)
-                            Text(process.name).lineLimit(1).frame(width: 220, alignment: .leading)
-                            MeterBar(fraction: fraction, color: ranking == .cpu ? Theme.brandBlue : Theme.series[6], height: 6)
-                            Text(process.cpuPercent.formatted(.number.precision(.fractionLength(0))) + "%")
-                                .monospacedDigit().frame(width: 52, alignment: .trailing)
-                                .foregroundStyle(ranking == .cpu ? .primary : .secondary)
-                            Text(mem(process.residentBytes)).monospacedDigit().frame(width: 80, alignment: .trailing)
-                                .foregroundStyle(ranking == .memory ? .primary : .secondary)
-                        }
-                        .font(.callout)
-                        .padding(.vertical, 3)
-                        .contextMenu {
-                            if let url = info?.bundleURL {
-                                Button("Reveal in Finder") { SystemActions.revealInFinder([url.path]) }
-                            }
-                            Button("Open Activity Monitor") { SystemActions.openActivityMonitor() }
-                        }
-                        .accessibilityElement(children: .combine)
-                    }
-                }
-                Text(ranking == .cpu
-                     ? "CPU over the last sample; 100% is one full core. Only processes your account may inspect are shown, and PureMac never quits processes."
-                     : "Memory each process holds right now. Only processes your account may inspect are shown, and PureMac never quits processes.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        }
     }
 }
 

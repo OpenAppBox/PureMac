@@ -77,41 +77,15 @@ public struct SimulatorSummary: Sendable, Hashable {
     public var totalDevices: Int
     public var unavailableDevices: Int
     public var runtimes: [String]
+    /// `false` when the installed runtimes could not be read, so `unavailableDevices` is unknown
+    /// (reported as 0).
+    public var availabilityKnown: Bool
 
-    public init(totalDevices: Int, unavailableDevices: Int, runtimes: [String]) {
+    public init(totalDevices: Int, unavailableDevices: Int, runtimes: [String], availabilityKnown: Bool = true) {
         self.totalDevices = totalDevices
         self.unavailableDevices = unavailableDevices
         self.runtimes = runtimes
-    }
-}
-
-public struct DockerSummary: Sendable, Hashable {
-    public struct Row: Sendable, Hashable, Identifiable {
-        public var id: String { type }
-        public var type: String
-        public var total: String
-        public var active: String
-        public var size: String
-        public var reclaimable: String
-
-        public init(type: String, total: String, active: String, size: String, reclaimable: String) {
-            self.type = type
-            self.total = total
-            self.active = active
-            self.size = size
-            self.reclaimable = reclaimable
-        }
-    }
-    public var installed: Bool
-    public var daemonRunning: Bool
-    public var rows: [Row]
-    public var message: String?
-
-    public init(installed: Bool, daemonRunning: Bool, rows: [Row], message: String?) {
-        self.installed = installed
-        self.daemonRunning = daemonRunning
-        self.rows = rows
-        self.message = message
+        self.availabilityKnown = availabilityKnown
     }
 }
 
@@ -152,7 +126,7 @@ public struct DeveloperStorageInspector: Sendable {
             Spec(id: "sim.devices", group: .simulators, title: String(localized: "Simulator Devices", bundle: .module), detail: String(localized: "Each simulator's apps, data and settings.", bundle: .module),
                  relative: "Library/Developer/CoreSimulator/Devices", risk: .review,
                  warning: String(localized: "Simulators can hold test data and app state. Remove devices with Xcode or `xcrun simctl`, not by deleting folders.", bundle: .module),
-                 handling: .inspectOnly(reason: String(localized: "Managed by Xcode. Use “Delete Unavailable Simulators” or Xcode’s Devices window.", bundle: .module)),
+                 handling: .inspectOnly(reason: String(localized: "Managed by Xcode. Use Xcode’s Devices window.", bundle: .module)),
                  hint: "xcrun simctl delete unavailable"),
             Spec(id: "sim.caches", group: .simulators, title: String(localized: "Simulator Caches", bundle: .module), detail: String(localized: "Caches created by CoreSimulator.", bundle: .module),
                  relative: "Library/Developer/CoreSimulator/Caches", risk: .review, handling: .selectChildren),
@@ -216,67 +190,63 @@ public struct DeveloperStorageInspector: Sendable {
         return items
     }
 
-    // MARK: Tools (documented CLIs, absolute paths, argument arrays)
+    // MARK: Simulators
 
-    public static var xcrunPath: String? { ToolRunner.locate(["/usr/bin/xcrun"]) }
-    public static var dockerPath: String? {
-        ToolRunner.locate(["/usr/local/bin/docker", "/opt/homebrew/bin/docker", "/Applications/Docker.app/Contents/Resources/bin/docker"])
-    }
-
-    /// Lists simulators via `xcrun simctl list devices --json` (read-only).
-    public static func simulatorSummary() -> SimulatorSummary? {
-        guard let xcrun = xcrunPath,
-              let output = ToolRunner.run(executable: xcrun, arguments: ["simctl", "list", "devices", "--json"], timeout: 30),
-              output.status == 0 else { return nil }
-        return parseSimulators(json: output.stdout)
-    }
-
-    static func parseSimulators(json: String) -> SimulatorSummary? {
-        guard let root = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any],
-              let devices = root["devices"] as? [String: [[String: Any]]] else { return nil }
-        var total = 0
-        var unavailable = 0
-        for (_, list) in devices {
-            for device in list {
-                total += 1
-                if (device["isAvailable"] as? Bool) == false { unavailable += 1 }
+    /// Simulator devices read from CoreSimulator's own files, because the App Sandbox can't run
+    /// `simctl`. Each device folder holds a `device.plist` (name, runtime, deletion
+    /// flag); installed runtimes are listed in CoreSimulator's `images.plist` (downloaded runtime
+    /// images) and as `.simruntime` bundles (older installs, and those inside Xcode). A device whose
+    /// runtime is not installed is unavailable — `simctl`'s own definition. Read-only.
+    public static func simulatorSummaryFromFiles(
+        devicesFolder: String = PathTools.userHome + "/Library/Developer/CoreSimulator/Devices",
+        imagesPlist: String = "/Library/Developer/CoreSimulator/Images/images.plist",
+        runtimeFolders: [String] = defaultRuntimeFolders()
+    ) -> SimulatorSummary? {
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(atPath: devicesFolder) else { return nil }
+        var deviceRuntimes: [String] = []
+        for entry in entries {
+            let plist = devicesFolder + "/" + entry + "/device.plist"
+            guard let data = fm.contents(atPath: plist),
+                  let info = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+                  (info["isDeleted"] as? Bool) != true, let runtime = info["runtime"] as? String else { continue }
+            deviceRuntimes.append(runtime)
+        }
+        var installed: Set<String> = []
+        var readAny = false
+        if let data = fm.contents(atPath: imagesPlist),
+           let root = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] {
+            readAny = true
+            for image in root["images"] as? [[String: Any]] ?? [] {
+                if let id = (image["runtimeInfo"] as? [String: Any])?["bundleIdentifier"] as? String { installed.insert(id) }
             }
         }
-        let runtimes = devices.keys.map { $0.replacingOccurrences(of: "com.apple.CoreSimulator.SimRuntime.", with: "") }.sorted()
-        return SimulatorSummary(totalDevices: total, unavailableDevices: unavailable, runtimes: runtimes)
+        for folder in runtimeFolders {
+            guard let bundles = try? fm.contentsOfDirectory(atPath: folder) else { continue }
+            readAny = true
+            for bundle in bundles where bundle.hasSuffix(".simruntime") {
+                let info = folder + "/" + bundle + "/Contents/Info.plist"
+                if let data = fm.contents(atPath: info),
+                   let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+                   let id = plist["CFBundleIdentifier"] as? String { installed.insert(id) }
+            }
+        }
+        let unavailable = readAny ? deviceRuntimes.filter { !installed.contains($0) }.count : 0
+        let runtimes = Set(deviceRuntimes).map { $0.replacingOccurrences(of: "com.apple.CoreSimulator.SimRuntime.", with: "") }.sorted()
+        return SimulatorSummary(totalDevices: deviceRuntimes.count, unavailableDevices: unavailable, runtimes: runtimes,
+                                availabilityKnown: readAny)
     }
 
-    /// Runs Xcode's documented `xcrun simctl delete unavailable`, which removes only simulators whose
-    /// runtime is no longer installed. This is permanent (not via the Trash) and requires explicit consent.
-    public static func deleteUnavailableSimulators() -> (success: Bool, message: String) {
-        guard let xcrun = xcrunPath,
-              let output = ToolRunner.run(executable: xcrun, arguments: ["simctl", "delete", "unavailable"], timeout: 300) else {
-            return (false, String(localized: "Xcode command-line tools are not available.", bundle: .module))
+    /// Folders that hold `.simruntime` bundles: the system-wide one and those inside installed Xcodes.
+    public static func defaultRuntimeFolders() -> [String] {
+        var folders = ["/Library/Developer/CoreSimulator/Profiles/Runtimes"]
+        let apps = (try? FileManager.default.contentsOfDirectory(atPath: "/Applications")) ?? []
+        for app in apps where app.hasPrefix("Xcode") && app.hasSuffix(".app") {
+            let platforms = "/Applications/\(app)/Contents/Developer/Platforms"
+            for platform in (try? FileManager.default.contentsOfDirectory(atPath: platforms)) ?? [] {
+                folders.append("\(platforms)/\(platform)/Library/Developer/CoreSimulator/Profiles/Runtimes")
+            }
         }
-        if output.timedOut { return (false, String(localized: "simctl did not finish in time.", bundle: .module)) }
-        return (output.status == 0, output.status == 0 ? String(localized: "Unavailable simulators were deleted by simctl.", bundle: .module) : output.stderr)
-    }
-
-    /// `docker system df` — inspect only.
-    public static func dockerSummary() -> DockerSummary {
-        guard let docker = dockerPath else {
-            return DockerSummary(installed: false, daemonRunning: false, rows: [], message: String(localized: "Docker is not installed.", bundle: .module))
-        }
-        guard let output = ToolRunner.run(executable: docker, arguments: ["system", "df", "--format", "{{json .}}"], timeout: 30) else {
-            return DockerSummary(installed: true, daemonRunning: false, rows: [], message: String(localized: "Docker could not be started.", bundle: .module))
-        }
-        guard output.status == 0 else {
-            return DockerSummary(installed: true, daemonRunning: false, rows: [], message: String(localized: "Docker is installed but not running.", bundle: .module))
-        }
-        return DockerSummary(installed: true, daemonRunning: true, rows: parseDocker(output.stdout), message: nil)
-    }
-
-    static func parseDocker(_ text: String) -> [DockerSummary.Row] {
-        text.split(separator: "\n").compactMap { line in
-            guard let obj = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any] else { return nil }
-            return DockerSummary.Row(type: obj["Type"] as? String ?? "?", total: "\(obj["TotalCount"] ?? "")",
-                                     active: "\(obj["Active"] ?? "")", size: obj["Size"] as? String ?? "",
-                                     reclaimable: obj["Reclaimable"] as? String ?? "")
-        }
+        return folders
     }
 }

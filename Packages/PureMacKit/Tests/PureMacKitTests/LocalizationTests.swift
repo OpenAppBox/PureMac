@@ -19,6 +19,7 @@ struct LocalizationTests {
         "ru": ["one", "few", "many", "other"], "pl": ["one", "few", "many", "other"],
         "fr": ["one", "many", "other"], "pt-BR": ["one", "many", "other"], "it": ["one", "many", "other"],
         "ja": ["other"], "ko": ["other"], "zh-Hans": ["other"], "zh-Hant": ["other"],
+        "es": ["one", "many", "other"], "vi": ["other"], "th": ["other"], "id": ["other"],
     ]
 
     static func strings(_ url: URL) throws -> [String: [String: Any]] {

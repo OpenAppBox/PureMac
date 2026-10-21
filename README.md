@@ -13,7 +13,7 @@ every item previewed, everything moved to the Trash, nothing ever sent off your 
 [![Apple silicon and Intel](https://img.shields.io/badge/Apple%20silicon%20%26%20Intel-universal-5E5CE6)](#get-puremac)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-34C759)](LICENSE)
 [![No tracking](https://img.shields.io/badge/tracking-none-FF9F0A)](PRIVACY.md)
-[![18 languages](https://img.shields.io/badge/languages-18-FF375F)](#speaks-your-language)
+[![23 languages](https://img.shields.io/badge/languages-23-FF375F)](#speaks-your-language)
 
 [**Website**](https://www.openappbox.com/puremac) ·
 [**Get PureMac**](#get-puremac) ·
@@ -72,7 +72,7 @@ only what your Mac recreates on its own: app and browser caches, caches of apps 
 chat apps, downloaded app updates, developer tool caches, and logs nobody has touched in a month.
 
 - **One total, one button.** Press Review & Clean, look over the list, confirm. That's it.
-- **Apps you're using are respected.** Their caches are held back — *Quit & Include* closes those apps politely and adds them.
+- **Apps you're using are respected.** Their caches are held back until you quit those apps — then PureMac adds them by itself.
 - **Free up more, one tap at a time.** Unused developer data, installers older than a month and leftovers of deleted apps, each explained in one line.
 - **Never chosen for you:** anything personal, anything that might matter, anything PureMac isn't sure about.
 
@@ -157,10 +157,10 @@ Because the code is public, you don't have to take our word for it. See [PRIVACY
 
 ## Speaks your language
 
-PureMac is available in **18 languages**: English, Arabic, Chinese (Simplified and Traditional),
-Danish, Dutch, Finnish, French, German, Italian, Japanese, Korean, Norwegian, Polish, Portuguese
-(Brazil), Russian, Swedish and Turkish — with Arabic fully right to left. PureMac follows your Mac's
-language, or you can pick one in Settings.
+PureMac is available in **23 languages**: English, Arabic, Chinese (Simplified and Traditional),
+Danish, Dutch, Finnish, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Norwegian,
+Polish, Portuguese (Brazil), Russian, Spanish, Swedish, Thai, Turkish and Vietnamese — with Arabic
+fully right to left. PureMac follows your Mac's language, or you can pick one in Settings.
 
 ---
 
@@ -175,7 +175,9 @@ language, or you can pick one in Settings.
   build under the [GPL-3.0 license](LICENSE). See [Build from source](#build-from-source).
 
 **Requirements:** macOS 14 Sonoma or later · Apple silicon or Intel · Full Disk Access is optional
-(without it, protected locations are clearly listed instead of measured).
+(without it, protected locations are clearly listed instead of measured). PureMac runs in Apple's
+App Sandbox and reads only what you allow in a standard macOS panel: your home folder, and
+Macintosh HD the first time you scan the entire disk.
 
 ---
 
@@ -257,7 +259,10 @@ cd PureMac
 open PureMac.xcodeproj   # then Product → Run
 ```
 
-Run the tests with `Scripts/test.sh`. A build made this way is signed only for your own Mac.
+Before running, choose your own team under *Signing & Capabilities*. Your build runs in the App
+Sandbox, exactly like the App Store version — there is only one edition — and it opens without a
+subscription: only copies installed from the Mac App Store ask for one. Run the tests with
+`Scripts/test.sh`. A build made this way is signed only for your own Mac.
 
 ---
 

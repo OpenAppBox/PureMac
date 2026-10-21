@@ -156,9 +156,9 @@ struct OverviewView: View {
     }
 
     /// Used space a home-folder scan left out, when it is a large part of the disk (at least 10 GB
-    /// and a fifth of the used space). `nil` after a whole-disk scan or in the App Store edition.
+    /// and a fifth of the used space). `nil` after a whole-disk scan.
     private var unscannedBytes: Int64? {
-        guard !app.access.isRequired, !app.scan.latestScanCoveredEntireDisk, let scanned = scannedOnStartupVolume,
+        guard !app.scan.latestScanCoveredEntireDisk, let scanned = scannedOnStartupVolume,
               let used = app.scan.startupVolume?.usedCapacity else { return nil }
         let rest = used - scanned
         return rest >= max(10_000_000_000, used / 5) ? rest : nil
@@ -192,7 +192,10 @@ struct OverviewView: View {
         }
         .padding(12)
         .background(SidebarItem.overview.hue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .task { fullDiskAccess = await Task.detached { FullDiskAccess.status() }.value }
+        .task {
+            let granted = app.access.hasHomeAccess
+            fullDiskAccess = await Task.detached { FullDiskAccess.status(homeGranted: granted) }.value
+        }
         .modifier(EntireDiskAccessCheck(isPresented: $askForAccess) { app.scan.start(entireDisk: true) })
     }
 
@@ -496,10 +499,10 @@ struct FreeUpSpaceCard: View {
                  ? "+\(ByteFormat.string(smart.heldBackBytes, style: byteStyle)) more once some apps quit"
                  : "+\(ByteFormat.string(smart.heldBackBytes, style: byteStyle)) more if \(names) quit")
                 .font(.callout).lineLimit(1)
-            if !apps.isEmpty, app.apps.canQuitApps {
-                Button("Quit & Include") { smart.quitHeldBackApps() }
+            if !apps.isEmpty {
+                Button(apps.count == 1 ? "Show \(apps[0].name)" : "Show \(apps.count) Apps") { smart.showHeldBackApps() }
                     .buttonStyle(.link)
-                    .help("Asks these apps to quit normally (they may ask to save), then checks again. PureMac never force-quits.")
+                    .help("Brings these apps to the front so you can quit them (⌘Q). PureMac checks again once they quit.")
             }
         }
     }
@@ -650,13 +653,13 @@ func locationCaption(_ record: FileRecord) -> String? {
 }
 
 /// The startup disk's name ("Macintosh HD"), shown for the root of a whole-disk scan.
-private let startupDiskName: String =
+let startupDiskName: String =
     (try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeLocalizedNameKey]).volumeLocalizedName) ?? "Macintosh HD"
 
 func abbreviate(_ path: String) -> String {
     let home = PathTools.userHome
     if path == home { return "~" }
-    if path == PathTools.dataVolume { return startupDiskName }
+    if path == PathTools.dataVolume || path == "/" { return startupDiskName }
     if path.hasPrefix(home + "/") { return "~" + path.dropFirst(home.count) }
     return path
 }
@@ -690,10 +693,9 @@ struct ScanButton: View {
             .disabled(app.scan.phase == .cancelling)
         } else {
             HStack(spacing: 8) {
-                // The App Store edition scans the folders it was given; there is no whole-disk choice.
-                if !app.access.isRequired { ScanScopeMenu() }
+                ScanScopeMenu()
                 Button {
-                    if entireDisk, FullDiskAccess.status() == .denied { askForAccess = true } else { app.scan.start() }
+                    if entireDisk, FullDiskAccess.status(homeGranted: app.access.hasHomeAccess) == .denied { askForAccess = true } else { app.scan.start() }
                 } label: {
                     Label(title, systemImage: "dot.radiowaves.left.and.right")
                 }
@@ -705,7 +707,7 @@ struct ScanButton: View {
         }
     }
 
-    private var entireDisk: Bool { app.settings.scanEntireDataVolume && !app.access.isRequired }
+    private var entireDisk: Bool { app.settings.scanEntireDataVolume }
 
     /// "Rescan" repeats the last scan; a new or different scope says what will be scanned.
     private var title: LocalizedStringKey {
